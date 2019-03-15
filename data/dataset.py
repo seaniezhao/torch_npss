@@ -12,16 +12,17 @@ import bisect
 class NpssDataset(torch.utils.data.Dataset):
     def __init__(self,
                  dataset_file,
-                 item_length,
+                 receptive_field,
                  target_length,
                  train=True):
 
         #           |----receptive_field----|
         # example:  | | | | | | | | | | | | | | | | | | | | |
-        # target:                             | | | | | | | | |
+        # target:                           | | | | | | | | |
         self.dataset_file = dataset_file
-        self._item_length = item_length
+        self._receptive_field = receptive_field
         self.target_length = target_length
+        self.item_length = self._receptive_field+self.target_length-1
 
         self.data = np.load(self.dataset_file)
         self.data = self.data / 128
@@ -29,12 +30,12 @@ class NpssDataset(torch.utils.data.Dataset):
         self._length = 0
         self.calculate_length()
         self.train = train
-        print("one hot input")
+
 
 
     def calculate_length(self):
 
-        available_length = self.data.shape[0] - (self._item_length - (self.target_length - 1)) - 1
+        available_length = self.data.shape[0] - self._receptive_field + 1
         self._length = math.floor(available_length / self.target_length)
 
 
@@ -42,11 +43,11 @@ class NpssDataset(torch.utils.data.Dataset):
 
         sample_index = idx * self.target_length
 
-        sample = self.data[sample_index:sample_index+self._item_length+1, :]
+        sample = self.data[sample_index:sample_index+self.item_length, :]
 
         example = torch.from_numpy(sample)
 
-        item = example[:self._item_length].transpose(0, 1)
+        item = example[:self.item_length].transpose(0, 1)
         target = example[-self.target_length:].transpose(0, 1)
         return item, target
 

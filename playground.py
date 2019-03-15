@@ -9,7 +9,7 @@ import os
 wav_path = './data/gen_samples/gen.npy'
 #wav_path = './data/prepared_data/sp.npy'
 
-code_sp = np.load(wav_path).astype(np.double)
+code_sp = np.load(wav_path).astype(np.double)*128
 
 sp = pw.decode_spectral_envelope(code_sp, 22050, 1024)
 #print(data)

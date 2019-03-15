@@ -14,7 +14,7 @@ if use_cuda:
     dtype = torch.cuda.FloatTensor
     ltype = torch.cuda.LongTensor
 
-model = WaveNetModel(output_length=5,
+model = WaveNetModel(output_length=1,
                      dtype=dtype,
                      bias=True)
 
@@ -29,8 +29,8 @@ print('receptive field: ', model.receptive_field)
 print('parameter count: ', model.parameter_count())
 
 data = NpssDataset(dataset_file='data/prepared_data/sp.npy',
-                      item_length=model.receptive_field + model.output_length - 1,
-                      target_length=model.output_length)
+                   receptive_field=model.receptive_field,
+                   target_length=model.output_length)
 
 print('the dataset has ' + str(len(data)) + ' items')
 
