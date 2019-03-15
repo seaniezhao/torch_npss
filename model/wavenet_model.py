@@ -3,6 +3,7 @@ import os.path
 import time
 from model.wavenet_modules import *
 from data.dataset import *
+from model.util import *
 
 
 class WaveNetModel(nn.Module):
@@ -26,15 +27,16 @@ class WaveNetModel(nn.Module):
         L should be the length of the receptive field
     """
     def __init__(self,
-                 layers=10,
-                 blocks=4,
-                 dilation_channels=32,
-                 residual_channels=32,
-                 skip_channels=256,
-                 end_channels=256,
-                 classes=80,
-                 gcm_factor=4,
+                 layers=3,
+                 blocks=2,
+                 dilation_channels=130,
+                 residual_channels=130,
+                 skip_channels=240,
+                 input_channel=60,
+                 condition_channel=60,
+                 cgm_factor=4,
                  output_length=32,
+                 initial_kernel=10,
                  kernel_size=2,
                  dtype=torch.FloatTensor,
                  bias=False):
@@ -46,10 +48,12 @@ class WaveNetModel(nn.Module):
         self.dilation_channels = dilation_channels
         self.residual_channels = residual_channels
         self.skip_channels = skip_channels
-        self.classes = classes
+        self.input_channel = input_channel
+        self.initial_kernel = initial_kernel
         self.kernel_size = kernel_size
         self.dtype = dtype
-        self.gcm_factor = gcm_factor
+        self.gcm_factor = cgm_factor
+        self.condition_channel = condition_channel
 
         # build model
         receptive_field = 1
@@ -57,22 +61,31 @@ class WaveNetModel(nn.Module):
 
         self.dilations = []
         self.dilated_queues = []
-        # self.main_convs = nn.ModuleList()
+
         self.filter_convs = nn.ModuleList()
         self.gate_convs = nn.ModuleList()
         self.residual_convs = nn.ModuleList()
         self.skip_convs = nn.ModuleList()
 
         # 1x1 convolution to create channels
-        self.start_conv = nn.Conv1d(in_channels=self.classes,
+        self.start_conv = nn.Conv1d(in_channels=self.input_channel,
+                                    out_channels=residual_channels,
+                                    kernel_size=10,
+                                    bias=bias)
+        # condition start conv
+        self.cond_start_conv = nn.Conv1d(in_channels=self.condition_channel,
                                     out_channels=residual_channels,
                                     kernel_size=1,
                                     bias=bias)
 
+
         for b in range(blocks):
             additional_scope = kernel_size - 1
             new_dilation = 1
-            for i in range(layers):
+            actual_layer = layers
+            if b == blocks-1:
+                actual_layer = layers - 1
+            for i in range(actual_layer):
                 # dilations of this layer
                 self.dilations.append((new_dilation, init_dilation))
 
@@ -111,21 +124,27 @@ class WaveNetModel(nn.Module):
                 new_dilation *= 2
 
         self.end_conv = nn.Conv1d(in_channels=skip_channels,
-                                  out_channels=classes*gcm_factor,
+                                  out_channels=input_channel * cgm_factor,
                                   kernel_size=1,
                                   bias=True)
 
+        # condition end conv
+        self.cond_end_conv = nn.Conv1d(in_channels=self.condition_channel,
+                                         out_channels=skip_channels,
+                                         kernel_size=1,
+                                         bias=bias)
+
         # self.output_length = 2 ** (layers - 1)
         self.output_length = output_length
-        self.receptive_field = receptive_field
+        self.receptive_field = receptive_field + self.initial_kernel - 1
 
-    def wavenet(self, input, dilation_func):
+    def wavenet(self, input, condition, dilation_func):
 
         x = self.start_conv(input)
         skip = 0
 
         # WaveNet layers
-        for i in range(self.blocks * self.layers):
+        for i in range(self.blocks * self.layers - 1):
 
             #            |----------------------------------------|     *residual*
             #            |                                        |
@@ -140,11 +159,15 @@ class WaveNetModel(nn.Module):
 
             residual = dilation_func(x, dilation, init_dilation, i)
 
+            # here plus condition
+            #condi = self.cond_start_conv(condition)
+            #residual = residual + condi
+
             # dilated convolution
             filter = self.filter_convs[i](residual)
-            filter = F.tanh(filter)
+            filter = torch.tanh(filter)
             gate = self.gate_convs[i](residual)
-            gate = F.sigmoid(gate)
+            gate = torch.sigmoid(gate)
             x = filter * gate
 
             # parametrized skip connection
@@ -161,8 +184,11 @@ class WaveNetModel(nn.Module):
             x = self.residual_convs[i](x)
             x = x + residual[:, :, (self.kernel_size - 1):]
 
+        # plus condition
+        #condi = self.cond_end_conv(condition)
+        #skip = skip + condi
 
-        x = F.tanh(skip)
+        x = torch.tanh(skip)
         x = self.end_conv(x)
 
         return x
@@ -180,136 +206,59 @@ class WaveNetModel(nn.Module):
 
         return x
 
-    def forward(self, input):
-        x = self.wavenet(input,
+    def forward(self, input, condition):
+        x = self.wavenet(input, condition,
                          dilation_func=self.wavenet_dilate)
 
         # reshape output
         [n, c, l] = x.size()
         l = self.output_length
         x = x[:, :, -l:]
-        x = x.transpose(1, 2).contiguous()
-        x = x.view(n * l, c)
+
         return x
 
-    def generate(self,
-                 num_samples,
-                 first_samples=None,
-                 temperature=1.):
+    def generate_fast(self, num_samples):
         self.eval()
-        if first_samples is None:
-            first_samples = self.dtype(1).zero_()
-        generated = Variable(first_samples, volatile=True)
 
-        num_pad = self.receptive_field - generated.size(0)
-        if num_pad > 0:
-            generated = constant_pad_1d(generated, self.scope, pad_start=True)
-            print("pad zero")
-
-        for i in range(num_samples):
-            input = Variable(torch.FloatTensor(1, self.classes, self.receptive_field).zero_())
-            input = input.scatter_(1, generated[-self.receptive_field:].view(1, -1, self.receptive_field), 1.)
-
-            x = self.wavenet(input,
-                             dilation_func=self.wavenet_dilate)[:, :, -1].squeeze()
-
-            if temperature > 0:
-                x /= temperature
-                prob = F.softmax(x, dim=0)
-                prob = prob.cpu()
-                np_prob = prob.data.numpy()
-                x = np.random.choice(self.classes, p=np_prob)
-                x = Variable(torch.LongTensor([x]))#np.array([x])
-            else:
-                x = torch.max(x, 0)[1].float()
-
-            generated = torch.cat((generated, x), 0)
-
-        generated = (generated / self.classes) * 2. - 1
-        mu_gen = mu_law_expansion(generated, self.classes)
-
-        self.train()
-        return mu_gen
-
-    def generate_fast(self,
-                      num_samples,
-                      first_samples=None,
-                      temperature=1.,
-                      regularize=0.,
-                      progress_callback=None,
-                      progress_interval=100):
-        self.eval()
-        if first_samples is None:
-            first_samples = torch.LongTensor(1).zero_() + (self.classes // 2)
-        first_samples = Variable(first_samples)
 
         # reset queues
         for queue in self.dilated_queues:
             queue.reset()
 
-        num_given_samples = first_samples.size(0)
-        total_samples = num_given_samples + num_samples
 
-        input = Variable(torch.FloatTensor(1, self.classes, 1).zero_())
-        input = input.scatter_(1, first_samples[0:1].view(1, -1, 1), 1.)
 
-        # fill queues with given samples
-        for i in range(num_given_samples - 1):
-            x = self.wavenet(input,
-                             dilation_func=self.queue_dilate)
-            input.zero_()
-            input = input.scatter_(1, first_samples[i + 1:i + 2].view(1, -1, 1), 1.).view(1, self.classes, 1)
+        input = torch.zeros(1, self.input_channel, self.initial_kernel)
 
-            # progress feedback
-            if i % progress_interval == 0:
-                if progress_callback is not None:
-                    progress_callback(i, total_samples)
 
         # generate new samples
-        generated = np.array([])
-        regularizer = torch.pow(Variable(torch.arange(self.classes)) - self.classes / 2., 2)
-        regularizer = regularizer.squeeze() * regularize
+        generated = torch.zeros(num_samples, self.input_channel)
         tic = time.time()
         for i in range(num_samples):
-            x = self.wavenet(input,
+            #  x shape : b, 240, l
+            x = self.wavenet(input, None,
                              dilation_func=self.queue_dilate).squeeze()
 
-            x -= regularizer
-
-            if temperature > 0:
-                # sample from softmax distribution
-                x /= temperature
-                prob = F.softmax(x, dim=0)
-                prob = prob.cpu()
-                np_prob = prob.data.numpy()
-                x = np.random.choice(self.classes, p=np_prob)
-                x = np.array([x])
-            else:
-                # convert to sample value
-                x = torch.max(x, 0)[1][0]
-                x = x.cpu()
-                x = x.data.numpy()
-
-            o = (x / self.classes) * 2. - 1
-            generated = np.append(generated, o)
+            x_sample = sample_from_CGM(x.detach())
+            generated[i, :] = x_sample.squeeze(0)
 
             # set new input
-            x = Variable(torch.from_numpy(x).type(torch.LongTensor))
-            input.zero_()
-            input = input.scatter_(1, x.view(1, -1, 1), 1.).view(1, self.classes, 1)
+            if i >= 10:
+                input = generated[i-10:i, :]
+            else:
+            # padding
+                input = generated[0:i+1, :]
+                pad_dim = self.initial_kernel - (i + 1)
+                input = torch.cat((torch.zeros(pad_dim, self.input_channel), input))
+
+
+            input = input.unsqueeze(0).permute(0, 2, 1)
 
             if (i+1) == 100:
                 toc = time.time()
                 print("one generating step does take approximately " + str((toc - tic) * 0.01) + " seconds)")
 
-            # progress feedback
-            if (i + num_given_samples) % progress_interval == 0:
-                if progress_callback is not None:
-                    progress_callback(i + num_given_samples, total_samples)
-
         self.train()
-        mu_gen = mu_law_expansion(generated, self.classes)
-        return mu_gen
+        return generated
 
 
     def parameter_count(self):
@@ -324,20 +273,4 @@ class WaveNetModel(nn.Module):
         super().cpu()
 
 
-def load_latest_model_from(location, use_cuda=True):
-    files = [location + "/" + f for f in os.listdir(location)]
-    newest_file = max(files, key=os.path.getctime)
-    print("load model " + newest_file)
 
-    if use_cuda:
-        model = torch.load(newest_file)
-    else:
-        model = load_to_cpu(newest_file)
-
-    return model
-
-
-def load_to_cpu(path):
-    model = torch.load(path, map_location=lambda storage, loc: storage)
-    model.cpu()
-    return model

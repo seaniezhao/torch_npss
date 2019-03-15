@@ -53,7 +53,7 @@ class DilatedQueue:
             self.data = Variable(dtype(num_channels, max_length).zero_())
 
     def enqueue(self, input):
-        self.data[:, self.in_pos] = input
+        self.data[:, self.in_pos] = input[:, 0]
         self.in_pos = (self.in_pos + 1) % self.max_length
 
     def dequeue(self, num_deq=1, dilation=1):
@@ -126,6 +126,3 @@ def constant_pad_1d(input,
                     pad_start=False):
     return ConstantPad1d(target_size, dimension, value, pad_start)(input)
 
-
-def gcm_loss(outputs, targets, k=4):
-    pass

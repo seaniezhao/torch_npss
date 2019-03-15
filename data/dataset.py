@@ -23,8 +23,9 @@ class NpssDataset(torch.utils.data.Dataset):
         self._item_length = item_length
         self.target_length = target_length
 
+        self.data = np.load(self.dataset_file)
+        self.data = self.data / 128
 
-        self.data = np.load(self.dataset_file, mmap_mode='r')
         self._length = 0
         self.calculate_length()
         self.train = train
@@ -54,12 +55,3 @@ class NpssDataset(torch.utils.data.Dataset):
         return self._length
 
 
-
-def mu_law_encoding(data, mu):
-    mu_x = np.sign(data) * np.log(1 + mu * np.abs(data)) / np.log(mu + 1)
-    return mu_x
-
-
-def mu_law_expansion(data, mu):
-    s = np.sign(data) * (np.exp(np.abs(data) * np.log(mu + 1)) - 1) / mu
-    return s

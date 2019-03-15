@@ -2,11 +2,13 @@ import torch
 import torch.optim as optim
 import torch.utils.data
 import time
+import os
 from datetime import datetime
 import torch.nn.functional as F
 from torch.autograd import Variable
 from model_logging import Logger
 from model.wavenet_modules import *
+from model.util import *
 
 
 def print_last_loss(opt):
@@ -65,14 +67,15 @@ class WavenetTrainer:
 
                 x = Variable(x.type(self.dtype))
 
-                target = Variable(target.view(-1).type(self.ltype))
+                target = Variable(target.type(self.dtype))
 
-                output = self.model(x)
-                loss = F.cross_entropy(output.squeeze(), target.squeeze())
+                output = self.model(x, None)
+                loss = CGM_loss(output, target)
+                #loss = F.cross_entropy(output.squeeze(), target.squeeze())
                 self.optimizer.zero_grad()
                 loss.backward()
                 loss = loss.item()
-
+                print('loss: ', loss)
                 if self.clip is not None:
                     torch.nn.utils.clip_grad_norm(self.model.parameters(), self.clip)
                 self.optimizer.step()
@@ -87,9 +90,11 @@ class WavenetTrainer:
                     if self.snapshot_path is None:
                         continue
                     time_string = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime())
+                    if not os.path.exists(self.snapshot_path):
+                        os.mkdir(self.snapshot_path)
                     torch.save(self.model, self.snapshot_path + '/' + self.snapshot_name + '_' + time_string)
-
-                self.logger.log(step, loss)
+                    print('model saved')
+                #self.logger.log(step, loss)
 
     def validate(self):
         self.model.eval()
@@ -98,11 +103,11 @@ class WavenetTrainer:
         accurate_classifications = 0
         for (x, target) in iter(self.dataloader):
             x = Variable(x.type(self.dtype))
-            target = Variable(target.view(-1).type(self.ltype))
+            target = Variable(target.type(self.dtype))
 
             output = self.model(x)
-            loss = F.cross_entropy(output.squeeze(), target.squeeze())
-            total_loss += loss.data[0]
+            loss = CGM_loss(output, target)
+            total_loss += loss.item()
 
             predictions = torch.max(output, 1)[1].view(-1)
             correct_pred = torch.eq(target, predictions)
@@ -116,12 +121,5 @@ class WavenetTrainer:
         return avg_loss, avg_accuracy
 
 
-def generate_audio(model,
-                   length=8000,
-                   temperatures=[0., 1.]):
-    samples = []
-    for temp in temperatures:
-        samples.append(model.generate_fast(length, temperature=temp))
-    samples = np.stack(samples, axis=0)
-    return samples
+
 

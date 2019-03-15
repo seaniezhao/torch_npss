@@ -10,6 +10,18 @@ import os
 def process_wav(wav_path):
     y, sr = librosa.load(wav_path, dtype=np.float64)
 
+    for index, v in enumerate(y):
+        if v != 0:
+            y = y[index:]
+            break
+    end = len(y)
+    for i in reversed(y):
+        if i != 0:
+            y = y[:end]
+        else:
+            end -= 1
+
+
     #使用DIO算法计算音频的基频F0
     _f0, t = pw.dio(y, sr, f0_floor=50.0, f0_ceil=600.0, channels_in_octave=2, frame_period=pw.default_frame_period)
     print(_f0.shape)
@@ -17,7 +29,7 @@ def process_wav(wav_path):
     #使用CheapTrick算法计算音频的频谱包络
     _sp = pw.cheaptrick(y, _f0, t, sr)
     
-    code_sp = pw.code_spectral_envelope(_sp, sr, 80)
+    code_sp = pw.code_spectral_envelope(_sp, sr, 60)
     print(_sp.shape, code_sp.shape)
     #计算aperiodic参数
     _ap = pw.d4c(y, _f0, t, sr)
@@ -29,8 +41,12 @@ def process_wav(wav_path):
 
 if __name__ == '__main__':
 
-    wav_path = './Stereo Out.wav'
+    wav_path = './raw/Aiko_chinese_32KHZ.wav'
     f0, sp, ap = process_wav(wav_path)
+    v_uv = f0 > 0
+
+    np.save('prepared_data/v_uv.npy', f0)
     np.save('prepared_data/f0.npy', f0)
     np.save('prepared_data/sp.npy', sp)
     np.save('prepared_data/ap.npy', ap)
+
