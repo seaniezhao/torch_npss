@@ -1,5 +1,8 @@
 #custom
 *.wav
+*.raw
+*.lab
+*.npy
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
