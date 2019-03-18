@@ -3,6 +3,7 @@
 *.raw
 *.lab
 *.npy
+/snapshots
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
