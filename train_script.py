@@ -14,8 +14,7 @@ if use_cuda:
     dtype = torch.cuda.FloatTensor
     ltype = torch.cuda.LongTensor
 
-model = WaveNetModel(output_length=1,
-                     dtype=dtype,
+model = WaveNetModel(dtype=dtype,
                      bias=True)
 
 
@@ -29,8 +28,9 @@ print('receptive field: ', model.receptive_field)
 print('parameter count: ', model.parameter_count())
 
 data = NpssDataset(dataset_file='data/prepared_data/sp.npy',
+                   condition_file='data/prepared_data/condition.npy',
                    receptive_field=model.receptive_field,
-                   target_length=model.output_length)
+                   target_length=1)
 
 print('the dataset has ' + str(len(data)) + ' items')
 
@@ -43,7 +43,7 @@ logger = TensorboardLogger(log_interval=200,
 
 trainer = WavenetTrainer(model=model,
                          dataset=data,
-                         lr=0.0001,
+                         lr=0.0005,
                          weight_decay=0.0,
                          snapshot_path='./snapshots',
                          snapshot_name='chaconne_model',
@@ -53,6 +53,6 @@ trainer = WavenetTrainer(model=model,
                          ltype=ltype)
 
 print('start training...')
-trainer.train(batch_size=16,
-              epochs=200,
+trainer.train(batch_size=32,
+              epochs=1650,
               continue_training_at_step=0)

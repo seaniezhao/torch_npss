@@ -9,7 +9,8 @@ from torch.autograd import Variable
 from model_logging import Logger
 from model.wavenet_modules import *
 from model.util import *
-
+import pyworld as pw
+import matplotlib.pyplot as plt
 
 def print_last_loss(opt):
     print("loss: ", opt.losses[-1])
@@ -49,6 +50,15 @@ class WavenetTrainer:
         self.dtype = dtype
         self.ltype = ltype
 
+    def adjust_learning_rate(self, optimizer, epoch):
+        """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
+        lr = self.lr / (1 + 0.00001 * epoch)
+
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr
+
+
+
     def train(self,
               batch_size=32,
               epochs=10,
@@ -62,14 +72,16 @@ class WavenetTrainer:
         step = continue_training_at_step
         for current_epoch in range(epochs):
             print("epoch", current_epoch)
+            self.adjust_learning_rate(self.optimizer, current_epoch)
             tic = time.time()
             for (x, target) in iter(self.dataloader):
-
+                x, condi = x
                 x = Variable(x.type(self.dtype))
+                condi = Variable(condi.type(self.dtype))
 
                 target = Variable(target.type(self.dtype))
 
-                output = self.model(x, None)
+                output = self.model(x, condi)
                 loss = CGM_loss(output, target)
                 #loss = F.cross_entropy(output.squeeze(), target.squeeze())
                 self.optimizer.zero_grad()
@@ -87,14 +99,15 @@ class WavenetTrainer:
                     print("one training step does take approximately " + str((toc - tic) * 0.01) + " seconds)")
 
                 if step % self.snapshot_interval == 0:
-                    if self.snapshot_path is None:
-                        continue
-                    time_string = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime())
-                    if not os.path.exists(self.snapshot_path):
-                        os.mkdir(self.snapshot_path)
-                    torch.save(self.model, self.snapshot_path + '/' + self.snapshot_name + '_' + time_string)
-                    print('model saved')
+                    self.save_model(current_epoch)
+
+                    # gen = self.generate_audio()
+                    # sp = pw.decode_spectral_envelope(gen.cpu().numpy().astype(np.double), 32000, 1024)
+                    # plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom',interpolation='none')
+                    # plt.show()
+
                 #self.logger.log(step, loss)
+        self.save_model(epochs)
 
     def validate(self):
         self.model.eval()
@@ -120,6 +133,34 @@ class WavenetTrainer:
         self.model.train()
         return avg_loss, avg_accuracy
 
+    def save_model(self, epoch):
+        if self.snapshot_path is None:
+            return
+        time_string = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime())
+        if not os.path.exists(self.snapshot_path):
+            os.mkdir(self.snapshot_path)
+        torch.save(self.model, self.snapshot_path + '/' + self.snapshot_name + '_' + str(epoch) + '_' + time_string)
+        print('model saved')
 
 
+    # test
+    def get_first_input(self):
+        wav_path = './data/prepared_data/sp.npy'
 
+        code_sp = np.load(wav_path).astype(np.double)
+        return torch.Tensor(code_sp)
+
+    def get_condition(self):
+        c_path = './data/prepared_data/condition.npy'
+        conditon = np.load(c_path).astype(np.float)
+        return torch.Tensor(conditon).transpose(0, 1)
+
+    def generate_audio(self):
+
+        first_input = self.get_first_input()
+        condi = self.get_condition()
+        gen = self.model.generate(condi, first_input.transpose(0, 1))
+
+        x = torch.sum((first_input - gen.cpu())**2)
+        print("MSE !!!!!!!!!!!!!!", x)
+        return gen

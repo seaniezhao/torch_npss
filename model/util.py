@@ -1,14 +1,19 @@
 import torch
+import math
 import numpy as np
 from torch.distributions.normal import Normal
 
-cgm_factor = 4
-r_u = 1.6
-r_s = 1.1
-r_w = 1/1.75
 
 # 计算 mu sigma 和 w
 def cal_para(out):
+
+    cgm_factor = 4
+    r_u = 1.6
+    r_s = 1.1
+    r_w = 1 / 1.75
+
+    temperature = 0.01
+
     out = out.permute(0, 2, 1).contiguous()
     out = out.view(out.shape[0], out.shape[1], -1, cgm_factor)
 
@@ -23,12 +28,13 @@ def cal_para(out):
     beta = 2 * torch.sigmoid(a3)
 
     sigmas = []
-    for k in range(4):
+    for k in range(cgm_factor):
         sigma = omega * torch.exp(k * (torch.abs(alpha) * r_s - 1))
+        sigma *= math.sqrt(temperature)
         sigmas.append(sigma)
 
     mus = []
-    for k in range(4):
+    for k in range(cgm_factor):
         temp_sum = 0
         for i in range(k):
             temp_sum += sigmas[i] * r_u * alpha
@@ -36,25 +42,33 @@ def cal_para(out):
         mus.append(mu)
 
     ws = []
-    for k in range(4):
+    for k in range(cgm_factor):
         temp_sum = 0
         for i in range(4):
             temp_sum += alpha.pow(2 * i) * beta.pow(i) * (r_w ** i)
         w = (alpha.pow(2 * k) * beta.pow(k) * (r_w ** k)) / temp_sum
         ws.append(w)
 
+    _mus = 0
+    for k in range(cgm_factor):
+        _mus += ws[k]*mus[k]
+
+    for k in range(cgm_factor):
+        mus[k] = mus[k] + (_mus - mus[k])*(1 - temperature)
+
+
     return sigmas, mus, ws
-
-
 
 #  x dim = (batch, output_channel, length)
 #  l dim = (batch, output_channel * cgm_factor, length)
-#
-def CGM_loss(out, x):
-    x = x.permute(0, 2, 1)
+
+
+def CGM_loss(out, y):
+    y = y.permute(0, 2, 1)
 
     sigmas, mus, ws = cal_para(out)
 
+    #print(torch.mean(sigmas[0]))
     #  验证w之和是1
     sum = 0
     for k in range(4):
@@ -67,7 +81,7 @@ def CGM_loss(out, x):
     probs = 0
     for k in range(4):
         dist = Normal(mus[k], sigmas[k])
-        log_prob = dist.log_prob(x)
+        log_prob = dist.log_prob(y)
 
         x = dist.sample()
         # prob = log_prob * log_prob
@@ -82,10 +96,10 @@ def sample_from_CGM(out):
     sigmas, mus, ws = cal_para(out)
 
     value = 0
-    rand = torch.rand(ws[0].shape)
+    rand = torch.rand(ws[0].shape).cuda()
 
     for k in range(4):
-        mask_btm = torch.zeros(ws[k].shape)
+        mask_btm = torch.zeros(ws[k].shape).cuda()
         for i in range(k):
             mask_btm += ws[i]
         mask = (rand < (ws[k] + mask_btm)) * (rand >= mask_btm)
