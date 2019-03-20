@@ -1,58 +1,63 @@
-import time
+import hparams
 from model.wavenet_model import *
-from data.dataset import NpssDataset
-from model.wavenet_training import *
+from data.dataset import TimbreDataset
+from model.timbre_training import *
 from model_logging import *
 from scipy.io import wavfile
 
-dtype = torch.FloatTensor
-ltype = torch.LongTensor
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-use_cuda = torch.cuda.is_available()
-if use_cuda:
-    print('use gpu')
-    dtype = torch.cuda.FloatTensor
-    ltype = torch.cuda.LongTensor
-
-model = WaveNetModel(dtype=dtype,
-                     bias=True)
+model = WaveNetModel(hparams.create_harmonic_hparams(), device).to(device)
 
 
-
-if use_cuda:
-    print("move model to gpu")
-    model.cuda()
 
 print('model: ', model)
 print('receptive field: ', model.receptive_field)
 print('parameter count: ', model.parameter_count())
 
-data = NpssDataset(dataset_file='data/prepared_data/sp.npy',
-                   condition_file='data/prepared_data/condition.npy',
-                   receptive_field=model.receptive_field,
-                   target_length=1)
+data = TimbreDataset(data_folder='data/timbre_model', receptive_field=model.receptive_field, type=0)
 
 print('the dataset has ' + str(len(data)) + ' items')
 
 
 
-logger = TensorboardLogger(log_interval=200,
-                           validation_interval=400,
-                           generate_interval=800,
-                           log_dir="logs/chaconne_model")
-
-trainer = WavenetTrainer(model=model,
+trainer = TimbreTrainer(model=model,
                          dataset=data,
                          lr=0.0005,
                          weight_decay=0.0,
-                         snapshot_path='./snapshots',
+                         snapshot_path='./snapshots/harmonic',
                          snapshot_name='chaconne_model',
                          snapshot_interval=2000,
-                         logger=logger,
-                         dtype=dtype,
-                         ltype=ltype)
+                         device=device)
 
 print('start training...')
 trainer.train(batch_size=32,
-              epochs=1650,
-              continue_training_at_step=0)
+              epochs=1650)
+
+
+
+model = WaveNetModel(hparams.create_aperiodic_hparams(), device).to(device)
+
+print('model: ', model)
+print('receptive field: ', model.receptive_field)
+print('parameter count: ', model.parameter_count())
+
+data = TimbreDataset(data_folder='data/timbre_model', receptive_field=model.receptive_field, type=1)
+
+print('the dataset has ' + str(len(data)) + ' items')
+
+
+
+trainer = TimbreTrainer(model=model,
+                         dataset=data,
+                         lr=0.0005,
+                         weight_decay=0.0,
+                         snapshot_path='./snapshots/aperiodic',
+                         snapshot_name='chaconne_model',
+                         snapshot_interval=2000,
+                         device=device)
+
+print('start training...')
+trainer.train(batch_size=32,
+              epochs=1650)
+

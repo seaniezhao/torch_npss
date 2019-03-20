@@ -10,7 +10,7 @@ import os
 wav_path = './data/gen_samples/gen.npy'
 code_sp = np.load(wav_path).astype(np.double)
 
-wav_path = './data/prepared_data/sp.npy'
+wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/train/sp/nitech_jp_song070_f001_014_sp.npy'
 code_sp1 = np.load(wav_path).astype(np.double)
 
 spmin = -21.62037003104595

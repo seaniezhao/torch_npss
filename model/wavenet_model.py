@@ -1,39 +1,30 @@
 import os
 import os.path
 import time
-from model.wavenet_modules import *
 from data.dataset import *
 from model.util import *
-
+import torch.nn as nn
 
 class WaveNetModel(nn.Module):
 
-    def __init__(self,
-                 layers=3,
-                 blocks=2,
-                 dilation_channels=130,
-                 residual_channels=130,
-                 skip_channels=240,
-                 input_channel=60,
-                 condition_channel=1085,
-                 cgm_factor=4,
-                 initial_kernel=10,
-                 kernel_size=2,
-                 bias=True):
+    def __init__(self, hparams, device):
 
         super(WaveNetModel, self).__init__()
 
-        self.layers = layers
-        self.blocks = blocks
-        self.dilation_channels = dilation_channels
-        self.residual_channels = residual_channels
-        self.skip_channels = skip_channels
-        self.input_channel = input_channel
-        self.initial_kernel = initial_kernel
-        self.kernel_size = kernel_size
-        self.gcm_factor = cgm_factor
-        self.condition_channel = condition_channel
+        self.type = hparams.type
+        self.layers = hparams.layers
+        self.blocks = hparams.blocks
+        self.dilation_channels = hparams.dilation_channels
+        self.residual_channels = hparams.residual_channels
+        self.skip_channels = hparams.skip_channels
+        self.input_channel = hparams.input_channel
+        self.initial_kernel = hparams.initial_kernel
+        self.kernel_size = hparams.kernel_size
+        self.output_channel = hparams.output_channel
+        self.condition_channel = hparams.condition_channel
+        self.bias = hparams.bias
 
+        self.device = device
         # build model
         receptive_field = 1
         init_dilation = 1
@@ -49,58 +40,58 @@ class WaveNetModel(nn.Module):
 
         # 1x1 convolution to create channels
         self.start_conv = nn.Conv1d(in_channels=self.input_channel,
-                                    out_channels=residual_channels,
+                                    out_channels=self.residual_channels,
                                     kernel_size=10,
-                                    bias=bias)
+                                    bias=self.bias)
         # condition start conv
         self.cond_start_conv = nn.Conv1d(in_channels=self.condition_channel,
-                                    out_channels=dilation_channels*2,
+                                    out_channels=self.dilation_channels*2,
                                     kernel_size=1,
-                                    bias=bias)
+                                    bias=self.bias)
 
 
-        for b in range(blocks):
-            additional_scope = kernel_size - 1
+        for b in range(self.blocks):
+            additional_scope = self.kernel_size - 1
             new_dilation = 1
-            actual_layer = layers
-            if b == blocks-1:
-                actual_layer = layers - 1
+            actual_layer = self.layers
+            if b == self.blocks-1:
+                actual_layer = self.layers - 1
             for i in range(actual_layer):
 
                 # dilated convolutions
-                self.dilated_convs.append(nn.Conv1d(in_channels=residual_channels,
-                                                    out_channels=dilation_channels*2,
-                                                    kernel_size=kernel_size,
-                                                    bias=bias,
+                self.dilated_convs.append(nn.Conv1d(in_channels=self.residual_channels,
+                                                    out_channels=self.dilation_channels*2,
+                                                    kernel_size=self.kernel_size,
+                                                    bias=self.bias,
                                                     dilation=new_dilation))
 
                 # 1x1 convolution for residual connection
-                self.residual_convs.append(nn.Conv1d(in_channels=dilation_channels,
-                                                     out_channels=residual_channels,
+                self.residual_convs.append(nn.Conv1d(in_channels=self.dilation_channels,
+                                                     out_channels=self.residual_channels,
                                                      kernel_size=1,
-                                                     bias=bias))
+                                                     bias=self.bias))
 
                 # 1x1 convolution for skip connection
-                self.skip_convs.append(nn.Conv1d(in_channels=dilation_channels,
-                                                 out_channels=skip_channels,
+                self.skip_convs.append(nn.Conv1d(in_channels=self.dilation_channels,
+                                                 out_channels=self.skip_channels,
                                                  kernel_size=1,
-                                                 bias=bias))
+                                                 bias=self.bias))
 
                 receptive_field += additional_scope
                 additional_scope *= 2
                 init_dilation = new_dilation
                 new_dilation *= 2
 
-        self.end_conv = nn.Conv1d(in_channels=skip_channels,
-                                  out_channels=input_channel * cgm_factor,
+        self.end_conv = nn.Conv1d(in_channels=self.skip_channels,
+                                  out_channels=self.output_channel,
                                   kernel_size=1,
-                                  bias=bias)
+                                  bias=self.bias)
 
         # condition end conv
         self.cond_end_conv = nn.Conv1d(in_channels=self.condition_channel,
-                                       out_channels=skip_channels,
+                                       out_channels=self.skip_channels,
                                        kernel_size=1,
-                                       bias=bias)
+                                       bias=self.bias)
 
 
         self.receptive_field = receptive_field + self.initial_kernel - 1
@@ -158,59 +149,58 @@ class WaveNetModel(nn.Module):
 
         return x
 
-
     def forward(self, input, condition):
         x = self.wavenet(input, condition)
 
         return x
-
-    def generate(self, conditions, first_input=None):
-        self.eval()
-        conditions = conditions.cuda()
-
-        num_samples = conditions.shape[1]
-
-        if first_input is None:
-            first_input = torch.zeros(self.input_channel, self.receptive_field).cuda()
-
-        first_input = first_input[:, :self.receptive_field].cuda()
-        model_input = first_input.unsqueeze(0)
-
-        # generate new samples
-        generated = torch.zeros(num_samples, self.input_channel).cuda()
-        generated[:self.receptive_field, :] = first_input.transpose(0, 1)
-        tic = time.time()
-        for i in range(num_samples-self.receptive_field):
-            condi = conditions[:,i+self.receptive_field].unsqueeze(0).unsqueeze(2)
-            #  x shape : b, 240, l
-            x = self.wavenet(model_input, condi).squeeze()
-
-            x_sample = sample_from_CGM(x.detach())
-            generated[i+self.receptive_field, :] = x_sample.squeeze(0)
-
-            # set new input
-            if i >= self.receptive_field:
-                model_input = generated[i-self.receptive_field:i, :]
-            else:
-            # padding
-                model_input = generated[0:i+1, :]
-                to_pad = first_input.transpose(0, 1)[i+1:, :]
-                model_input = torch.cat((to_pad, model_input))
-
-            model_input = model_input.unsqueeze(0).permute(0, 2, 1)
-
-            if (i+1) == 100:
-                toc = time.time()
-                print("one generating step does take approximately " + str((toc - tic) * 0.01) + " seconds)")
-
-        self.train()
-        return generated
-
 
     def parameter_count(self):
         par = list(self.parameters())
         s = sum([np.prod(list(d.size())) for d in par])
         return s
 
+    def generate(self, conditions, init_input=None):
+        self.eval()
 
+        conditions = conditions.to(self.device)
+        num_samples = conditions.shape[1]
+        generated = torch.zeros(self.input_channel, num_samples).cuda()
+
+        skip_first20 = True
+        if init_input is None:
+            init_input = torch.zeros(self.input_channel, self.receptive_field).to(self.device)
+            skip_first20 = False
+        else:
+            init_input = init_input[:, :self.receptive_field].to(self.device)
+            generated[:, :self.receptive_field] = init_input
+
+        model_input = init_input.unsqueeze(0)
+        tic = time.time()
+        for i in range(num_samples):
+            if skip_first20 and i < self.receptive_field:
+                continue
+            condi = conditions[:, i].unsqueeze(0).unsqueeze(2)
+            #  x shape : b, 240, l
+            x = self.wavenet(model_input, condi).squeeze()
+            x_sample = sample_from_CGM(x.detach())
+            generated[:, i] = x_sample.squeeze(0)
+
+            # set new input
+            if i >= self.receptive_field:
+                model_input = generated[:, i-self.receptive_field:i]
+            else:
+                # padding
+                model_input = generated[:, 0:i+1]
+                to_pad = init_input[:, i+1:]
+                model_input = torch.cat((to_pad, model_input), 1)
+
+            model_input = model_input.unsqueeze(0)
+
+            if (i+1) == 100:
+                toc = time.time()
+                print("one generating step does take approximately " + str((toc - tic) * 0.01) + " seconds)")
+
+        self.train()
+
+        return generated
 
