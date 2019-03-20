@@ -5,6 +5,7 @@ import threading
 import torch
 import torch.utils.data
 import numpy as np
+from torch.distributions.normal import Normal
 import librosa as lr
 import bisect
 
@@ -67,6 +68,7 @@ class TimbreDataset(torch.utils.data.Dataset):
                  data_folder,
                  receptive_field,
                  type = 0,
+                 noise_lambda =0.4,
                  target_length=1,
                  train=True):
 
@@ -75,7 +77,7 @@ class TimbreDataset(torch.utils.data.Dataset):
         # target:                             | | | | | | | | |
         #  0:harmonic, 1:aperiodic,  2:vuv
         self.type = type
-
+        self.noise_lambda = noise_lambda
         self._receptive_field = receptive_field
         self.target_length = target_length
         self.item_length = self._receptive_field+self.target_length
@@ -111,9 +113,8 @@ class TimbreDataset(torch.utils.data.Dataset):
             vuv = np.pad(vuv, (self._receptive_field, 0), 'constant', constant_values=0)
 
             self.dataset_files.append((sp, ap, vuv, condition))
-
             # for test
-            #break
+            break
 
         self._length = 0
         self.calculate_length()
@@ -153,14 +154,18 @@ class TimbreDataset(torch.utils.data.Dataset):
 
         ap_sample = torch.Tensor(ap[target_index:target_index + self.item_length, :]).transpose(0, 1)
         ap_item = ap_sample[:, :self._receptive_field]
+        ap_item = torch.cat((ap_item, sp_item), 0)
         ap_target = ap_sample[:, -self.target_length:]
 
 
 
         if self.type == 0:
-            return (sp_item, item_condition), sp_target
+            # input noise
+            dist = Normal(sp_item, self.noise_lambda)
+            return (dist.sample(), item_condition), sp_target
         else:
-            return (ap_item, item_condition), ap_target
+            dist = Normal(ap_item, self.noise_lambda)
+            return (dist.sample(), item_condition), ap_target
 
     def __len__(self):
 

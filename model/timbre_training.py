@@ -88,14 +88,13 @@ class TimbreTrainer:
                     # plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom',interpolation='none')
                     # plt.show()
 
-                #self.logger.log(step, loss)
         self.save_model(epochs)
 
     def validate(self):
         self.model.eval()
 
 
-        return avg_loss, avg_accuracy
+        return None
 
     def save_model(self, epoch):
         if self.snapshot_path is None:

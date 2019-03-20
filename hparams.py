@@ -14,6 +14,7 @@ def create_harmonic_hparams(hparams_string=None, verbose=False):
         input_channel=60,
         condition_channel=1132,
         output_channel=240,
+        sample_channel=60,
         initial_kernel=10,
         kernel_size=2,
         bias=True
@@ -39,9 +40,10 @@ def create_aperiodic_hparams(hparams_string=None, verbose=False):
         dilation_channels=130,
         residual_channels=130,
         skip_channels=16,
-        input_channel=4,
+        input_channel=64,
         condition_channel=1132,
         output_channel=16,
+        sample_channel=4,
         initial_kernel=10,
         kernel_size=2,
         bias=True
@@ -67,9 +69,10 @@ def create_vuv_hparams(hparams_string=None, verbose=False):
         dilation_channels=130,
         residual_channels=130,
         skip_channels=240,
-        input_channel=60,
+        input_channel=65,
         condition_channel=1132,
-        output_channel=240,
+        output_channel=1,
+        sample_channel=1,
         initial_kernel=10,
         kernel_size=2,
         bias=True

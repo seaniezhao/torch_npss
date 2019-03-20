@@ -4,22 +4,64 @@ from model_logging import *
 import pyworld as pw
 import matplotlib.pyplot as plt
 import numpy as np
+import soundfile as sf
 
 
-def load_latest_model_from(location, device):
+
+
+def load_latest_model_from(location):
 
     files = [location + "/" + f for f in os.listdir(location)]
     newest_file = max(files, key=os.path.getctime)
 
     print("load model " + newest_file)
-
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = torch.load(newest_file).to(device)
 
     return model
 
+
+def load_timbre(path, m_type, mx, mn):
+    load_t = np.load(path).astype(np.double)
+
+    load_t = load_t * (mx - mn) + mn
+    decode_sp = pw.decode_spectral_envelope(load_t, 32000, 1024)
+    if m_type == 1:
+        decode_sp = pw.decode_aperiodicity(load_t, 32000, 1024)
+
+    return decode_sp
+
+
+#  type 0:harmonic, 1:aperiodic, 2 vuv
+def generate_timbre(m_type, mx, mn, condition, cat_input=None, init_input=None):
+    model_path = 'snapshots/harmonic'
+    if m_type == 1:
+        model_path = 'snapshots/aperiodic'
+    model = load_latest_model_from(model_path)
+    sample = model.generate(condition, cat_input, init_input).transpose(0,1).cpu().numpy().astype(np.double)
+    sample = sample * (mx - mn) + mn
+
+    decode_sp = None
+    if m_type == 0:
+        decode_sp = pw.decode_spectral_envelope(sample, 32000, 1024)
+    elif m_type == 1:
+        decode_sp = pw.decode_aperiodicity(sample, 32000, 1024)
+
+    return decode_sp
+
+
+def get_cat_input():
+
+    wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/train/sp/nitech_jp_song070_f001_055_sp.npy'
+
+    code_sp = np.load(wav_path).astype(np.double)
+    return torch.Tensor(code_sp).transpose(0, 1)
+
+
 def get_first_input():
 
-    wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_003_sp.npy'
+    wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/train/sp/nitech_jp_song070_f001_055_sp.npy'
+    #wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/train/ap/nitech_jp_song070_f001_055_ap.npy'
 
     code_sp = np.load(wav_path).astype(np.double)
     return torch.Tensor(code_sp).transpose(0, 1)
@@ -27,58 +69,46 @@ def get_first_input():
 
 def get_condition():
 
-    c_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/condition/nitech_jp_song070_f001_003_condi.npy'
+    c_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/train/condition/nitech_jp_song070_f001_055_condi.npy'
     conditon = np.load(c_path).astype(np.float)
     return torch.Tensor(conditon).transpose(0, 1)
 
 
-def generate_audio(model):
 
-    first_input = get_first_input()
-    condi = get_condition()
-    sample = model.generate(condi, None)
-    return sample
-
-
-def generate_and_log_samples():
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    gen_model = load_latest_model_from('snapshots/harmonic', device)
-
-    print("start generating...")
-    samples = generate_audio(gen_model)
-
-    gen_path = 'data/gen_samples/'
-    if not os.path.exists(gen_path):
-        os.mkdir(gen_path)
-    np.save(gen_path+'gen.npy', samples)
-    print("audio clips generated")
-    return samples
 
 
 if __name__ == '__main__':
 
-    gen = generate_and_log_samples().transpose(0,1)
-
     [sp_min, sp_max, ap_min, ap_max] = np.load('/home/sean/pythonProj/torch_npss/data/timbre_model/min_max_record.npy')
+    condi = get_condition()
+    cat_input = get_cat_input()
+    fist_input = get_first_input()
 
-    wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_003_sp.npy'
-    load_ = np.load(wav_path).astype(np.double)
-    y = gen.cpu().numpy()
-
-    x = torch.sum((torch.Tensor(load_) - gen.cpu()) ** 2)
-    print(x)
-
-    load_sp = load_ * (sp_max - sp_min) + sp_min
-    sp1 = pw.decode_spectral_envelope(load_sp, 32000, 1024)
-
-    code_sp = y.astype(np.double) * (sp_max - sp_min) + sp_min
-    sp = pw.decode_spectral_envelope(code_sp, 32000, 1024)
-
-
-    plt.imshow(np.log(np.transpose(sp1)), aspect='auto', origin='bottom', interpolation='none')
-    plt.show()
+    sp = generate_timbre(0, sp_max, sp_min, condi, None, fist_input)
 
     plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom', interpolation='none')
     plt.show()
 
+    sp1 = load_timbre('/home/sean/pythonProj/torch_npss/data/timbre_model/train/sp/nitech_jp_song070_f001_055_sp.npy', 0, sp_max, sp_min)
+
+    plt.imshow(np.log(np.transpose(sp1)), aspect='auto', origin='bottom', interpolation='none')
+    plt.show()
+
+    # ap = generate_timbre(1, ap_max, ap_min, condi, cat_input, fist_input)
+    #
+    # plt.imshow(np.log(np.transpose(ap)), aspect='auto', origin='bottom', interpolation='none')
+    # plt.show()
+    #
+    # ap1 = load_timbre('/home/sean/pythonProj/torch_npss/data/timbre_model/train/ap/nitech_jp_song070_f001_055_ap.npy', 1, ap_max, ap_min)
+    #
+    # plt.imshow(np.log(np.transpose(ap1)), aspect='auto', origin='bottom', interpolation='none')
+    # plt.show()
+
+    # f0 = np.load('./data/prepared_data/f0.npy').astype(np.double)
+    # ap = np.load('./data/prepared_data/ap.npy').astype(np.double)
+    #
+    # ap = pw.decode_aperiodicity(ap, 32000, 1024)
+    # # 合成原始语音
+    # synthesized = pw.synthesize(f0, sp, ap, 32000, pw.default_frame_period)
+    # # 1.输出原始语音
+    # sf.write('./data/gen_wav/noise_synthesized.wav', synthesized, 32000)

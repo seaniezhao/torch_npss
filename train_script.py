@@ -27,7 +27,7 @@ trainer = TimbreTrainer(model=model,
                          weight_decay=0.0,
                          snapshot_path='./snapshots/harmonic',
                          snapshot_name='chaconne_model',
-                         snapshot_interval=2000,
+                         snapshot_interval=50000,
                          device=device)
 
 print('start training...')
@@ -54,7 +54,7 @@ trainer = TimbreTrainer(model=model,
                          weight_decay=0.0,
                          snapshot_path='./snapshots/aperiodic',
                          snapshot_name='chaconne_model',
-                         snapshot_interval=2000,
+                         snapshot_interval=50000,
                          device=device)
 
 print('start training...')
