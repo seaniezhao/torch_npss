@@ -1,6 +1,6 @@
 from model.wavenet_model import *
 from data.dataset import NpssDataset
-from model_logging import *
+import hparams
 import pyworld as pw
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,14 +9,21 @@ import soundfile as sf
 
 
 
-def load_latest_model_from(location):
+def load_latest_model_from(mtype, location):
 
     files = [location + "/" + f for f in os.listdir(location)]
     newest_file = max(files, key=os.path.getctime)
 
     print("load model " + newest_file)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = torch.load(newest_file).to(device)
+
+    if mtype == 0:
+        hparam = hparams.create_harmonic_hparams()
+    else:
+        hparam = hparams.create_aperiodic_hparams()
+
+    model = WaveNetModel(hparam, device).to(device)
+    model.load_state_dict(torch.load(newest_file))
 
     return model
 
@@ -37,7 +44,7 @@ def generate_timbre(m_type, mx, mn, condition, cat_input=None, init_input=None):
     model_path = 'snapshots/harmonic'
     if m_type == 1:
         model_path = 'snapshots/aperiodic'
-    model = load_latest_model_from(model_path)
+    model = load_latest_model_from(m_type, model_path)
     sample = model.generate(condition, cat_input, init_input).transpose(0,1).cpu().numpy().astype(np.double)
     sample = sample * (mx - mn) + mn
 
