@@ -3,6 +3,7 @@ import torch.optim as optim
 import torch.utils.data
 import time
 import os
+import torch.nn as nn
 from datetime import datetime
 from torch.autograd import Variable
 from model.util import *
@@ -37,6 +38,9 @@ class TimbreTrainer:
 
         self.clip = None
 
+        self.device_count = torch.cuda.device_count()
+
+
     def adjust_learning_rate(self, epoch):
         """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
         lr = self.lr / (1 + 0.00001 * epoch)
@@ -45,7 +49,13 @@ class TimbreTrainer:
             param_group['lr'] = lr
 
     def train(self, batch_size=32, epochs=10):
+
         self.model.train()
+        if self.device_count > 1:
+            batch_size *= self.device_count
+            self.model = nn.DataParallel(self.model)
+            print('multiple device using :', self.device_count)
+
         self.dataloader = torch.utils.data.DataLoader(self.dataset,
                                                       batch_size=batch_size,
                                                       shuffle=True,
@@ -102,7 +112,10 @@ class TimbreTrainer:
         time_string = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime())
         if not os.path.exists(self.snapshot_path):
             os.mkdir(self.snapshot_path)
-        torch.save(self.model, self.snapshot_path + '/' + self.snapshot_name + '_' + str(epoch) + '_' + time_string)
+        to_save = self.model
+        if self.device_count > 1:
+            to_save = self.model.module
+        torch.save(to_save.state_dict(), self.snapshot_path + '/' + self.snapshot_name + '_' + str(epoch) + '_' + time_string)
         print('model saved')
 
 
