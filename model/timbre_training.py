@@ -52,7 +52,6 @@ class TimbreTrainer:
 
         self.model.train()
         if self.device_count > 1:
-            batch_size *= self.device_count
             self.model = nn.DataParallel(self.model)
             print('multiple device using :', self.device_count)
 
@@ -79,7 +78,7 @@ class TimbreTrainer:
                 self.optimizer.zero_grad()
                 loss.backward()
                 loss = loss.item()
-                print('loss: ', loss)
+                #print('loss: ', loss)
                 if self.clip is not None:
                     torch.nn.utils.clip_grad_norm(self.model.parameters(), self.clip)
                 self.optimizer.step()
@@ -97,6 +96,9 @@ class TimbreTrainer:
                     # sp = pw.decode_spectral_envelope(gen.cpu().numpy().astype(np.double), 32000, 1024)
                     # plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom',interpolation='none')
                     # plt.show()
+
+            toc = time.time()
+            print("one epoch does take approximately " + str((toc - tic)) + " seconds)")
 
         self.save_model(epochs)
 
