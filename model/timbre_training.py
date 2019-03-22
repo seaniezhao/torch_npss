@@ -83,7 +83,7 @@ class ModelTrainer:
                 self.optimizer.zero_grad()
                 loss.backward()
                 loss = loss.item()
-                print('loss: ', loss)
+                #print('loss: ', loss)
                 if self.clip is not None:
                     torch.nn.utils.clip_grad_norm(self.model.parameters(), self.clip)
                 self.optimizer.step()
