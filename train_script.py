@@ -2,10 +2,15 @@ import hparams
 from model.wavenet_model import *
 from data.dataset import TimbreDataset
 from model.timbre_training import *
+import atexit
+
 import os
 from model_logging import *
 from scipy.io import wavfile
 #os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
+
+
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -23,18 +28,29 @@ print('the dataset has ' + str(len(data)) + ' items')
 
 
 
-trainer = TimbreTrainer(model=model,
-                         dataset=data,
-                         lr=0.0005,
-                         weight_decay=0.0,
-                         snapshot_path='./snapshots/harmonic',
-                         snapshot_name='chaconne_model',
-                         snapshot_interval=50000,
-                         device=device)
+trainer = ModelTrainer(model=model,
+                       dataset=data,
+                       lr=0.0005,
+                       weight_decay=0.0,
+                       snapshot_path='./snapshots/harmonic',
+                       snapshot_name='chaconne_model',
+                       snapshot_interval=2000,
+                       device=device)
+
+
+def exit_handler():
+    trainer.save_model()
+    print("exit from keyboard")
+
+
+#atexit.register(exit_handler)
+
+epoch = trainer.load_checkpoint('/home/sean/pythonProj/torch_npss/snapshots/harmonic/chaconne_model_0_2019-03-22_08-34-59')
 
 print('start training...')
 trainer.train(batch_size=32,
               epochs=420)
+
 
 
 

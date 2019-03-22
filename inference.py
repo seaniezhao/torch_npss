@@ -23,7 +23,8 @@ def load_latest_model_from(mtype, location):
         hparam = hparams.create_aperiodic_hparams()
 
     model = WaveNetModel(hparam, device).to(device)
-    model.load_state_dict(torch.load(newest_file))
+    states = torch.load(newest_file)
+    model.load_state_dict(states['state_dict'])
 
     return model
 
@@ -59,7 +60,7 @@ def generate_timbre(m_type, mx, mn, condition, cat_input=None, init_input=None):
 
 def get_cat_input():
 
-    wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/train/sp/nitech_jp_song070_f001_055_sp.npy'
+    wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_003_sp.npy'
 
     code_sp = np.load(wav_path).astype(np.double)
     return torch.Tensor(code_sp).transpose(0, 1)
@@ -67,7 +68,7 @@ def get_cat_input():
 
 def get_first_input():
 
-    wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/train/sp/nitech_jp_song070_f001_055_sp.npy'
+    wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_003_sp.npy'
     #wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/train/ap/nitech_jp_song070_f001_055_ap.npy'
 
     code_sp = np.load(wav_path).astype(np.double)
@@ -76,7 +77,7 @@ def get_first_input():
 
 def get_condition():
 
-    c_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/train/condition/nitech_jp_song070_f001_055_condi.npy'
+    c_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/condition/nitech_jp_song070_f001_003_condi.npy'
     conditon = np.load(c_path).astype(np.float)
     return torch.Tensor(conditon).transpose(0, 1)
 
@@ -96,7 +97,7 @@ if __name__ == '__main__':
     plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom', interpolation='none')
     plt.show()
 
-    sp1 = load_timbre('/home/sean/pythonProj/torch_npss/data/timbre_model/train/sp/nitech_jp_song070_f001_055_sp.npy', 0, sp_max, sp_min)
+    sp1 = load_timbre('/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_003_sp.npy', 0, sp_max, sp_min)
 
     plt.imshow(np.log(np.transpose(sp1)), aspect='auto', origin='bottom', interpolation='none')
     plt.show()

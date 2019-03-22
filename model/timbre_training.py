@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 
 
-class TimbreTrainer:
+class ModelTrainer:
     def __init__(self,
                  model,
                  dataset,
@@ -40,10 +40,13 @@ class TimbreTrainer:
 
         self.device_count = torch.cuda.device_count()
 
+        self.start_epoch = 0
+        self.epoch = 0
 
-    def adjust_learning_rate(self, epoch):
-        """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-        lr = self.lr / (1 + 0.00001 * epoch)
+    def adjust_learning_rate(self):
+
+        real_epoch = self.start_epoch + self.epoch
+        lr = self.lr / (1 + 0.00001 * real_epoch)
 
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = lr
@@ -63,7 +66,9 @@ class TimbreTrainer:
         step = 0
         for current_epoch in range(epochs):
             print("epoch", current_epoch)
-            self.adjust_learning_rate(current_epoch)
+            self.epoch = current_epoch
+
+            self.adjust_learning_rate()
             tic = time.time()
             for (x, target) in iter(self.dataloader):
                 x, condi = x
@@ -78,7 +83,7 @@ class TimbreTrainer:
                 self.optimizer.zero_grad()
                 loss.backward()
                 loss = loss.item()
-                #print('loss: ', loss)
+                print('loss: ', loss)
                 if self.clip is not None:
                     torch.nn.utils.clip_grad_norm(self.model.parameters(), self.clip)
                 self.optimizer.step()
@@ -89,18 +94,29 @@ class TimbreTrainer:
                     toc = time.time()
                     print("one training step does take approximately " + str((toc - tic) * 0.01) + " seconds)")
 
-                if step % self.snapshot_interval == 0:
-                    self.save_model(current_epoch)
-
-                    # gen = self.generate_audio()
-                    # sp = pw.decode_spectral_envelope(gen.cpu().numpy().astype(np.double), 32000, 1024)
-                    # plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom',interpolation='none')
-                    # plt.show()
-
+            self.save_model()
             toc = time.time()
             print("one epoch does take approximately " + str((toc - tic)) + " seconds)")
 
-        self.save_model(epochs)
+        self.save_model()
+
+
+    def load_checkpoint(self, filename):
+
+        if os.path.isfile(filename):
+            print("=> loading checkpoint '{}'".format(filename))
+            checkpoint = torch.load(filename)
+            self.start_epoch = checkpoint['epoch']
+            self.model.load_state_dict(checkpoint['state_dict'])
+            self.optimizer.load_state_dict(checkpoint['optimizer'])
+
+            print("=> loaded checkpoint '{}' (epoch {})"
+                  .format(filename, checkpoint['epoch']))
+        else:
+            print("=> no checkpoint found at '{}'".format(filename))
+
+        return self.start_epoch
+
 
     def validate(self):
         self.model.eval()
@@ -108,7 +124,7 @@ class TimbreTrainer:
 
         return None
 
-    def save_model(self, epoch):
+    def save_model(self):
         if self.snapshot_path is None:
             return
         time_string = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime())
@@ -117,7 +133,13 @@ class TimbreTrainer:
         to_save = self.model
         if self.device_count > 1:
             to_save = self.model.module
-        torch.save(to_save.state_dict(), self.snapshot_path + '/' + self.snapshot_name + '_' + str(epoch) + '_' + time_string)
+
+        str_epoch = str(self.start_epoch + self.epoch)
+        filename = self.snapshot_path + '/' + self.snapshot_name + '_' + str_epoch + '_' + time_string
+        state = {'epoch': self.epoch + 1, 'state_dict': to_save.state_dict(),
+                 'optimizer': self.optimizer.state_dict()}
+        torch.save(state, filename)
+
         print('model saved')
 
 

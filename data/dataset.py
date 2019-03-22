@@ -114,7 +114,7 @@ class TimbreDataset(torch.utils.data.Dataset):
 
             self.dataset_files.append((sp, ap, vuv, condition))
             # for test
-            break
+            # break
 
         self._length = 0
         self.calculate_length()
