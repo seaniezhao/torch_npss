@@ -40,15 +40,12 @@ class WaveNetModel(nn.Module):
         self.residual_convs = nn.ModuleList()
         self.skip_convs = nn.ModuleList()
 
+        self.condi_convs = nn.ModuleList()
+
         # 1x1 convolution to create channels
         self.start_conv = nn.Conv1d(in_channels=self.input_channel,
                                     out_channels=self.residual_channels,
-                                    kernel_size=10,
-                                    bias=self.bias)
-        # condition start conv
-        self.cond_start_conv = nn.Conv1d(in_channels=self.condition_channel,
-                                    out_channels=self.dilation_channels*2,
-                                    kernel_size=1,
+                                    kernel_size=self.initial_kernel,
                                     bias=self.bias)
 
 
@@ -59,6 +56,14 @@ class WaveNetModel(nn.Module):
             if b == self.blocks-1:
                 actual_layer = self.layers - 1
             for i in range(actual_layer):
+
+                self.condi_convs.append(nn.Conv1d(in_channels=self.condition_channel,
+                                        out_channels=self.dilation_channels*2,
+                                        kernel_size=1,
+                                        bias=self.bias))
+
+
+
 
                 # dilated convolutions
                 self.dilated_convs.append(nn.Conv1d(in_channels=self.residual_channels,
@@ -119,7 +124,8 @@ class WaveNetModel(nn.Module):
 
             dilated = self.dilated_convs[i](x)
             # here plus condition
-            condi = self.cond_start_conv(condition)
+            #todo how many cond_start_conv weights???
+            condi = self.condi_convs[i](condition)
             condi = condi.expand(dilated.shape)
             dilated = dilated + condi
 

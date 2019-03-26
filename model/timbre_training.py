@@ -70,6 +70,9 @@ class ModelTrainer:
 
             self.adjust_learning_rate()
             tic = time.time()
+
+            total_loss = 0
+            epoch_step = 0
             for (x, target) in iter(self.dataloader):
                 x, condi = x
                 x = x.to(self.device)
@@ -83,7 +86,10 @@ class ModelTrainer:
                 self.optimizer.zero_grad()
                 loss.backward()
                 loss = loss.item()
+                total_loss += loss
+                epoch_step += 1
                 #print('loss: ', loss)
+
                 if self.clip is not None:
                     torch.nn.utils.clip_grad_norm(self.model.parameters(), self.clip)
                 self.optimizer.step()
@@ -96,7 +102,7 @@ class ModelTrainer:
 
             self.save_model()
             toc = time.time()
-            print("one epoch does take approximately " + str((toc - tic)) + " seconds)")
+            print("one epoch does take approximately " + str((toc - tic)) + " seconds), average loss: " + str(total_loss/epoch_step))
 
         self.save_model()
 

@@ -38,11 +38,11 @@ def exit_handler():
 
 #atexit.register(exit_handler)
 
-#epoch = trainer.load_checkpoint('/home/sean/pythonProj/torch_npss/snapshots/harmonic/chaconne_model_0_2019-03-22_08-34-59')
+epoch = trainer.load_checkpoint('/home/sean/pythonProj/torch_npss/snapshots/harmonic/chaconne_model_930_2019-03-26_06-18-49')
 
 print('start training...')
 trainer.train(batch_size=32,
-              epochs=1650)
+              epochs=720)
 
 
 
