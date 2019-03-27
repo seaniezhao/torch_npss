@@ -74,7 +74,7 @@ class TimbreDataset(torch.utils.data.Dataset):
 
         #           |----receptive_field----|
         # example:  | | | | | | | | | | | | | | | | | | | | |
-        # target:                             | | | | | | | | |
+        # target:                             | 
         #  0:harmonic, 1:aperiodic,  2:vuv
         self.type = type
         self.noise_lambda = noise_lambda
