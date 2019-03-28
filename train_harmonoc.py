@@ -13,7 +13,7 @@ data = TimbreDataset(data_folder='data/timbre_model', receptive_field=model.rece
 print('the dataset has ' + str(len(data)) + ' items')
 trainer = ModelTrainer(model=model,
                        dataset=data,
-                       lr=0.0005,
+                       lr=0.00005,
                        weight_decay=0.0,
                        snapshot_path='./snapshots/harmonic',
                        snapshot_name='chaconne_model',
@@ -31,5 +31,5 @@ def exit_handler():
 #epoch = trainer.load_checkpoint('/home/sean/pythonProj/torch_npss/snapshots/harmonic/chaconne_model_930_2019-03-26_06-18-49')
 
 print('start training...')
-trainer.train(batch_size=32,
+trainer.train(batch_size=640,
               epochs=1650)

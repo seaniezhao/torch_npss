@@ -13,7 +13,7 @@ data = TimbreDataset(data_folder='data/timbre_model', receptive_field=model.rece
 print('the dataset has ' + str(len(data)) + ' items')
 trainer = ModelTrainer(model=model,
                          dataset=data,
-                         lr=0.0005,
+                         lr=0.00005,
                          weight_decay=0.0,
                          snapshot_path='./snapshots/aperiodic',
                          snapshot_name='chaconne_model',
@@ -21,5 +21,5 @@ trainer = ModelTrainer(model=model,
                          device=device)
 
 print('start training...')
-trainer.train(batch_size=32,
+trainer.train(batch_size=640,
               epochs=1650)
