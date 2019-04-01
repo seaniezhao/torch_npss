@@ -16,21 +16,11 @@ trainer = ModelTrainer(model=model,
                        lr=0.0005,
                        weight_decay=0.0,
                        snapshot_path='./snapshots/harmonic',
-                       snapshot_name='chaconne_model',
+                       snapshot_name='batchsize_128',
                        snapshot_interval=2000,
-                       device=device,
-                       temperature=0.05)
+                       device=device)
 
-
-def exit_handler():
-    trainer.save_model()
-    print("exit from keyboard")
-
-
-#atexit.register(exit_handler)
-
-#epoch = trainer.load_checkpoint('snapshots/harmonic/chaconne_model_1649_2019-03-28_23-00-34')
 
 print('start training...')
 trainer.train(batch_size=128,
-              epochs=1650)
+              epochs=3000)

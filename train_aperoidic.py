@@ -13,13 +13,15 @@ data = TimbreDataset(data_folder='data/timbre_model', receptive_field=model.rece
 print('the dataset has ' + str(len(data)) + ' items')
 trainer = ModelTrainer(model=model,
                          dataset=data,
-                         lr=0.00005,
+                         lr=0.0005,
                          weight_decay=0.0,
                          snapshot_path='./snapshots/aperiodic',
                          snapshot_name='chaconne_model',
                          snapshot_interval=50000,
                          device=device)
 
+epoch = trainer.load_checkpoint('/Users/zhaowenxiao/pythonProj/torch_npss/snapshots/aperiodic/chaconne_model_1021_2019-03-30_09-32-23')
+
 print('start training...')
-trainer.train(batch_size=640,
-              epochs=1650)
+trainer.train(batch_size=128,
+              epochs=1000)
