@@ -20,8 +20,10 @@ def load_latest_model_from(mtype, location):
 
     if mtype == 0:
         hparam = hparams.create_harmonic_hparams()
-    else:
+    elif mtype == 1:
         hparam = hparams.create_aperiodic_hparams()
+    else:
+        hparam = hparams.create_vuv_hparams()
 
     model = WaveNetModel(hparam, device).to(device)
     states = torch.load(newest_file)
@@ -41,14 +43,14 @@ def load_timbre(path, m_type, mx, mn):
     return decode_sp
 
 
-#  type 0:harmonic, 1:aperiodic, 2 vuv
+#  type 0:harmonic, 1:aperiodic,
 def generate_timbre(m_type, mx, mn, condition, cat_input=None, init_input=None):
     model_path = 'snapshots/harmonic'
     if m_type == 1:
         model_path = 'snapshots/aperiodic'
     model = load_latest_model_from(m_type, model_path)
-    sample = model.generate(condition, cat_input, init_input).transpose(0,1).cpu().numpy().astype(np.double)
-    sample = sample * (mx - mn) + mn
+    raw_gen = model.generate(condition, cat_input, init_input)
+    sample = raw_gen.transpose(0, 1).cpu().numpy().astype(np.double) * (mx - mn) + mn
 
     decode_sp = None
     if m_type == 0:
@@ -56,15 +58,37 @@ def generate_timbre(m_type, mx, mn, condition, cat_input=None, init_input=None):
     elif m_type == 1:
         decode_sp = pw.decode_aperiodicity(sample, 32000, fft_size)
 
-    return decode_sp
+    return decode_sp, raw_gen
+
+def generate_vuv(condition, cat_input, init_input=None):
+    model_path = 'snapshots/vuv'
+    model = load_latest_model_from(2, model_path)
+    gen = model.generate(condition, cat_input, init_input).squeeze()
+
+    return gen.cpu().numpy().astype(np.uint8)
 
 
-def get_cat_input():
+def get_ap_cat():
 
     wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_040_sp.npy'
 
     code_sp = np.load(wav_path).astype(np.double)
     return torch.Tensor(code_sp).transpose(0, 1)
+
+def get_vuv_cat():
+    wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_040_sp.npy'
+
+    code_sp = np.load(wav_path).astype(np.double)
+    sp_cat = torch.Tensor(code_sp).transpose(0, 1)
+
+    wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/ap/nitech_jp_song070_f001_040_ap.npy'
+
+    code_sp = np.load(wav_path).astype(np.double)
+    ap_cat = torch.Tensor(code_sp).transpose(0, 1)
+
+    cat = torch.cat((ap_cat, sp_cat), 0)
+    return cat
+
 
 
 def get_first_input():
@@ -113,36 +137,45 @@ if __name__ == '__main__':
 
     [sp_min, sp_max, ap_min, ap_max] = np.load('/home/sean/pythonProj/torch_npss/data/timbre_model/min_max_record.npy')
     condi = get_condition()
-    cat_input = get_cat_input()
+    cat_input = get_ap_cat()
     #fist_input = get_first_input()
 
-    sp = generate_timbre(0, sp_max, sp_min, condi, None, None)
-
-    plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom', interpolation='none')
-    plt.show()
-
-    sp1 = load_timbre('/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_040_sp.npy', 0, sp_max, sp_min)
-
-    plt.imshow(np.log(np.transpose(sp1)), aspect='auto', origin='bottom', interpolation='none')
-    plt.show()
-
-    # ap = generate_timbre(1, ap_max, ap_min, condi, cat_input, None)
+    # sp, raw_sp = generate_timbre(0, sp_max, sp_min, condi, None, None)
+    #
+    # plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom', interpolation='none')
+    # plt.show()
+    #
+    # sp1 = load_timbre('/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_040_sp.npy', 0, sp_max, sp_min)
+    #
+    # plt.imshow(np.log(np.transpose(sp1)), aspect='auto', origin='bottom', interpolation='none')
+    # plt.show()
+####################################################################################################
+    # ap, raw_ap = generate_timbre(1, ap_max, ap_min, condi, raw_sp, None)
     #
     # plt.imshow(np.log(np.transpose(ap)), aspect='auto', origin='bottom', interpolation='none')
     # plt.show()
     #
-    # ap1 = load_timbre('/home/sean/pythonProj/torch_npss/data/timbre_model/test/ap/nitech_jp_song070_f001_003_ap.npy', 1, ap_max, ap_min)
+    # ap1 = load_timbre('/home/sean/pythonProj/torch_npss/data/timbre_model/test/ap/nitech_jp_song070_f001_040_ap.npy', 1, ap_max, ap_min)
     #
     # plt.imshow(np.log(np.transpose(ap1)), aspect='auto', origin='bottom', interpolation='none')
     # plt.show()
 
+#########################################################################################################
+    vuv_cat = get_vuv_cat()
+    # gen_cat = torch.cat((raw_ap, raw_sp), 0)
+
+    vuv = generate_vuv(condi, vuv_cat)
+    plt.plot(vuv)
+    plt.show()
+
+    vuv1 = np.load('/home/sean/pythonProj/torch_npss/data/timbre_model/test/vuv/nitech_jp_song070_f001_040_vuv.npy')
+    plt.plot(vuv1)
+    plt.show()
 
     path = '/home/sean/pythonProj/torch_npss/data/raw/nitech_jp_song070_f001_040.raw'
     _f0, _sp, _ap = process_wav(path)
-
-
     # 合成原始语音
-    synthesized = pw.synthesize(_f0, sp, _ap, 32000, pw.default_frame_period)
+    synthesized = pw.synthesize(_f0, sp, ap, 32000, pw.default_frame_period)
     # 1.输出原始语音
     sf.write('./data/gen_wav/hahaha'
              '.wav', synthesized, 32000)

@@ -11,7 +11,7 @@ class WaveNetModel(nn.Module):
 
         super(WaveNetModel, self).__init__()
 
-        self.type = hparams.type
+        self.model_type = hparams.type
         self.layers = hparams.layers
         self.blocks = hparams.blocks
         self.dilation_channels = hparams.dilation_channels
@@ -155,7 +155,7 @@ class WaveNetModel(nn.Module):
         x = torch.tanh(skip)
         x = self.end_conv(x)
 
-        if self.type == 2:
+        if self.model_type == 2:
             x = torch.sigmoid(x)
 
         return x
@@ -179,7 +179,7 @@ class WaveNetModel(nn.Module):
 
         conditions = conditions.to(self.device)
         num_samples = conditions.shape[1]
-        generated = torch.zeros(self.sample_channel, num_samples).cuda()
+        generated = torch.zeros(self.sample_channel, num_samples).to(self.device)
 
         skip_first20 = True
 
@@ -205,7 +205,13 @@ class WaveNetModel(nn.Module):
             condi = conditions[:, i].unsqueeze(0).unsqueeze(2)
             #  x shape : b, 240, l
             x = self.wavenet(model_input, condi).squeeze()
-            x_sample = sample_from_CGM(x.detach())
+            if self.model_type == 2:
+                x_sample = 0
+                if x > 0.5:
+                    x_sample = 1
+                x_sample = torch.Tensor([x_sample]).to(self.device).unsqueeze(0)
+            else:
+                x_sample = sample_from_CGM(x.detach())
             generated[:, i] = x_sample.squeeze(0)
 
             # set new input

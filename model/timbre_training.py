@@ -84,7 +84,10 @@ class ModelTrainer:
                 target = target.to(self.device)
 
                 output = self.model(x, condi)
-                loss = CGM_loss(output, target,  self.temperature)
+                if self.model.model_type == 2:
+                    loss = torch.mean((output.squeeze()-target.squeeze())**2)
+                else:
+                    loss = CGM_loss(output, target,  self.temperature)
 
                 self.optimizer.zero_grad()
                 loss.backward()

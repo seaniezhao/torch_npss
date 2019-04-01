@@ -64,6 +64,7 @@ class NpssDataset(torch.utils.data.Dataset):
 
 
 class TimbreDataset(torch.utils.data.Dataset):
+    # type 0:harmonic, 1:aperiodic,  2:vuv
     def __init__(self,
                  data_folder,
                  receptive_field,
@@ -74,8 +75,7 @@ class TimbreDataset(torch.utils.data.Dataset):
 
         #           |----receptive_field----|
         # example:  | | | | | | | | | | | | | | | | | | | | |
-        # target:                             | 
-        #  0:harmonic, 1:aperiodic,  2:vuv
+        # target:                             |
         self.type = type
         self.noise_lambda = noise_lambda
         self._receptive_field = receptive_field
@@ -101,7 +101,7 @@ class TimbreDataset(torch.utils.data.Dataset):
 
             sp = np.load(os.path.join(sp_folder, item))
             ap = np.load(os.path.join(ap_folder, name+'_ap.npy'))
-            vuv = np.load(os.path.join(vuv_folder, name+'_vuv.npy')).astype(np.byte)
+            vuv = np.load(os.path.join(vuv_folder, name+'_vuv.npy')).astype(np.uint8)
             condition = np.load(os.path.join(condi_folder, name+'_condi.npy')).astype(np.float)
 
             assert len(sp) == len(ap) == len(vuv) == len(condition)
@@ -158,14 +158,23 @@ class TimbreDataset(torch.utils.data.Dataset):
         ap_target = ap_sample[:, -self.target_length:]
 
 
+        vuv_sample = torch.Tensor(vuv[target_index:target_index + self.item_length])
+        vuv_item = vuv_sample[:self._receptive_field]
+        # notice here ap_item == (ap_item, sp_item) so we dont cat sp item any more
+        vuv_item = torch.cat((vuv_item.unsqueeze(0), ap_item), 0)
+        vuv_target = vuv_sample[-self.target_length:]
 
         if self.type == 0:
             # input noise
             dist = Normal(sp_item, self.noise_lambda)
             return (dist.sample(), item_condition), sp_target
-        else:
+        elif self.type == 1:
             dist = Normal(ap_item, self.noise_lambda)
             return (dist.sample(), item_condition), ap_target
+        else:
+            dist = Normal(vuv_item, self.noise_lambda)
+            return (dist.sample(), item_condition), vuv_target
+
 
     def __len__(self):
 
