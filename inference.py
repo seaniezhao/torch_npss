@@ -14,7 +14,7 @@ def load_latest_model_from(mtype, location):
     files = [location + "/" + f for f in os.listdir(location)]
     newest_file = max(files, key=os.path.getctime)
     # debug
-    #newest_file = '/home/sean/pythonProj/torch_npss/snapshots/harmonic/harmonic_final_model'
+    #newest_file = '/home/sean/pythonProj/torch_npss/snapshots/harmonic/batchsize_128_860_2019-03-30_02-58-07'
     print("load model " + newest_file)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -61,7 +61,7 @@ def generate_timbre(m_type, mx, mn, condition, cat_input=None, init_input=None):
 
 def get_cat_input():
 
-    wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_003_sp.npy'
+    wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_040_sp.npy'
 
     code_sp = np.load(wav_path).astype(np.double)
     return torch.Tensor(code_sp).transpose(0, 1)
@@ -69,7 +69,7 @@ def get_cat_input():
 
 def get_first_input():
 
-    wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_003_sp.npy'
+    wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_040_sp.npy'
     #wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/train/ap/nitech_jp_song070_f001_055_ap.npy'
 
     code_sp = np.load(wav_path).astype(np.double)
@@ -78,7 +78,7 @@ def get_first_input():
 
 def get_condition():
 
-    c_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/condition/nitech_jp_song070_f001_003_condi.npy'
+    c_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/condition/nitech_jp_song070_f001_040_condi.npy'
     conditon = np.load(c_path).astype(np.float)
     return torch.Tensor(conditon).transpose(0, 1)
 
@@ -114,33 +114,35 @@ if __name__ == '__main__':
     [sp_min, sp_max, ap_min, ap_max] = np.load('/home/sean/pythonProj/torch_npss/data/timbre_model/min_max_record.npy')
     condi = get_condition()
     cat_input = get_cat_input()
-    fist_input = get_first_input()
+    #fist_input = get_first_input()
 
-    sp = generate_timbre(0, sp_max, sp_min, condi, None, fist_input)
+    sp = generate_timbre(0, sp_max, sp_min, condi, None, None)
 
     plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom', interpolation='none')
     plt.show()
 
-    sp1 = load_timbre('/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_003_sp.npy', 0, sp_max, sp_min)
+    sp1 = load_timbre('/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_040_sp.npy', 0, sp_max, sp_min)
 
     plt.imshow(np.log(np.transpose(sp1)), aspect='auto', origin='bottom', interpolation='none')
     plt.show()
 
-    # ap = generate_timbre(1, ap_max, ap_min, condi, cat_input, fist_input)
+    # ap = generate_timbre(1, ap_max, ap_min, condi, cat_input, None)
     #
     # plt.imshow(np.log(np.transpose(ap)), aspect='auto', origin='bottom', interpolation='none')
     # plt.show()
     #
-    # ap1 = load_timbre('/home/sean/pythonProj/torch_npss/data/timbre_model/train/ap/nitech_jp_song070_f001_055_ap.npy', 1, ap_max, ap_min)
+    # ap1 = load_timbre('/home/sean/pythonProj/torch_npss/data/timbre_model/test/ap/nitech_jp_song070_f001_003_ap.npy', 1, ap_max, ap_min)
     #
     # plt.imshow(np.log(np.transpose(ap1)), aspect='auto', origin='bottom', interpolation='none')
     # plt.show()
 
-    path = '/home/sean/pythonProj/torch_npss/data/raw/nitech_jp_song070_f001_003.raw'
+
+    path = '/home/sean/pythonProj/torch_npss/data/raw/nitech_jp_song070_f001_040.raw'
     _f0, _sp, _ap = process_wav(path)
 
 
     # 合成原始语音
     synthesized = pw.synthesize(_f0, sp, _ap, 32000, pw.default_frame_period)
     # 1.输出原始语音
-    sf.write('./data/gen_wav/test_gen1.wav', synthesized, 32000)
+    sf.write('./data/gen_wav/hahaha'
+             '.wav', synthesized, 32000)

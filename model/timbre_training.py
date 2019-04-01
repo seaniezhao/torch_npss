@@ -21,7 +21,8 @@ class ModelTrainer:
                  snapshot_name='snapshot',
                  snapshot_interval=1000,
                  lr=0.0005,
-                 weight_decay=0):
+                 weight_decay=0,
+                 temperature=0.01):
 
         self.model = model
         self.dataset = dataset
@@ -29,6 +30,7 @@ class ModelTrainer:
         self.lr = lr
         self.weight_decay = weight_decay
         self.device = device
+        self.temperature = temperature
 
         self.snapshot_path = snapshot_path
         self.snapshot_name = snapshot_name
@@ -48,6 +50,7 @@ class ModelTrainer:
         real_epoch = self.start_epoch + self.epoch
         lr = self.lr / (1 + 0.00001 * real_epoch)
 
+        print('lr '+str(lr)+'  epoch  '+str(real_epoch))
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = lr
 
@@ -81,7 +84,7 @@ class ModelTrainer:
                 target = target.to(self.device)
 
                 output = self.model(x, condi)
-                loss = CGM_loss(output, target)
+                loss = CGM_loss(output, target,  self.temperature)
 
                 self.optimizer.zero_grad()
                 loss.backward()

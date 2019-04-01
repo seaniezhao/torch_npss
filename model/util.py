@@ -5,14 +5,13 @@ from torch.distributions.normal import Normal
 
 
 # 计算 mu sigma 和 w
-def cal_para(out):
+def cal_para(out, temperature):
 
     cgm_factor = 4
     r_u = 1.6
     r_s = 1.1
     r_w = 1 / 1.75
 
-    temperature = 0.01
 
     out = out.permute(0, 2, 1).contiguous()
     out = out.view(out.shape[0], out.shape[1], -1, cgm_factor)
@@ -63,10 +62,10 @@ def cal_para(out):
 #  l dim = (batch, output_channel * cgm_factor, length)
 
 
-def CGM_loss(out, y):
+def CGM_loss(out, y, temperature=0.01):
     y = y.permute(0, 2, 1)
 
-    sigmas, mus, ws = cal_para(out)
+    sigmas, mus, ws = cal_para(out, temperature)
 
     #print(torch.mean(sigmas[0]))
     #  验证w之和是1
@@ -90,10 +89,10 @@ def CGM_loss(out, y):
     return -torch.mean(probs)
 
 
-def sample_from_CGM(out):
+def sample_from_CGM(out, temperature=0.01):
     out = out.unsqueeze(1)
     out = out.unsqueeze(0)
-    sigmas, mus, ws = cal_para(out)
+    sigmas, mus, ws = cal_para(out, temperature)
 
     value = 0
     rand = torch.rand(ws[0].shape).cuda()

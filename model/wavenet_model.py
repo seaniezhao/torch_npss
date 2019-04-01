@@ -124,7 +124,7 @@ class WaveNetModel(nn.Module):
 
             dilated = self.dilated_convs[i](x)
             # here plus condition
-            #todo how many cond_start_conv weights???
+
             condi = self.condi_convs[i](condition)
             condi = condi.expand(dilated.shape)
             dilated = dilated + condi
@@ -154,6 +154,9 @@ class WaveNetModel(nn.Module):
 
         x = torch.tanh(skip)
         x = self.end_conv(x)
+
+        if self.type == 2:
+            x = torch.sigmoid(x)
 
         return x
 
