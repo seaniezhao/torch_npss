@@ -9,10 +9,9 @@ model = WaveNetModel(hparams.create_vuv_hparams(), device).to(device)
 print('model: ', model)
 print('receptive field: ', model.receptive_field)
 print('parameter count: ', model.parameter_count())
-data = TimbreDataset(data_folder='data/timbre_model', receptive_field=model.receptive_field, type=2)
-print('the dataset has ' + str(len(data)) + ' items')
+
 trainer = ModelTrainer(model=model,
-                         dataset=data,
+                        data_folder='data/timbre_model',
                          lr=0.0005,
                          weight_decay=0.0,
                          snapshot_path='./snapshots/vuv',

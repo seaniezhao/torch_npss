@@ -11,10 +11,20 @@ sp_max = 0
 ap_min = 0
 ap_max = 0
 
+rt_folder = 'timbre_model'
+tr_folder = 'timbre_model/train'
+
 sp_folder = 'timbre_model/train/sp/'
 ap_folder = 'timbre_model/train/ap/'
 vuv_folder = 'timbre_model/train/vuv/'
 condition_folder = 'timbre_model/train/condition/'
+
+te_folder = 'timbre_model/test'
+
+te_sp_folder = 'timbre_model/test/sp/'
+te_ap_folder = 'timbre_model/test/ap/'
+te_vuv_folder = 'timbre_model/test/vuv/'
+te_condition_folder = 'timbre_model/test/condition/'
 
 f0_bin = 1024
 
@@ -24,7 +34,8 @@ def process_wav(wav_path):
                     endian='LITTLE') #, start=56640, stop=262560)
 
     sr = 32000
-    y = librosa.resample(y, osr, sr)
+    if osr != sr:
+        y = librosa.resample(y, osr, sr)
 
     #使用DIO算法计算音频的基频F0
     _f0, t = pw.dio(y, sr, f0_floor=50.0, f0_ceil=800.0, channels_in_octave=2, frame_period=pw.default_frame_period)
@@ -121,6 +132,11 @@ def process_timbre_model_condition(time_phon_list, all_phon, f0):
     return oh_list
 
 if __name__ == '__main__':
+    if not os.path.exists(rt_folder):
+        os.mkdir(rt_folder)
+    # train folders
+    if not os.path.exists(tr_folder):
+        os.mkdir(tr_folder)
 
     if not os.path.exists(sp_folder):
         os.mkdir(sp_folder)
@@ -130,8 +146,22 @@ if __name__ == '__main__':
         os.mkdir(vuv_folder)
     if not os.path.exists(condition_folder):
         os.mkdir(condition_folder)
+    # test folders
+    if not os.path.exists(te_folder):
+        os.mkdir(te_folder)
 
-    raw_folder = './raw'
+    if not os.path.exists(te_sp_folder):
+        os.mkdir(te_sp_folder)
+    if not os.path.exists(te_ap_folder):
+        os.mkdir(te_ap_folder)
+    if not os.path.exists(te_vuv_folder):
+        os.mkdir(te_vuv_folder)
+    if not os.path.exists(te_condition_folder):
+        os.mkdir(te_condition_folder)
+
+    test_names = ['nitech_jp_song070_f001_015', 'nitech_jp_song070_f001_029', 'nitech_jp_song070_f001_040']
+
+    raw_folder = './cut_raw'
 
     all_phon = ['none']
     data_to_save = []
@@ -175,12 +205,20 @@ if __name__ == '__main__':
 
     for file_name, time_phon_list, f0, sp, ap in data_to_save:
         oh_list = process_timbre_model_condition(time_phon_list, all_phon, f0)
-        np.save(condition_folder + file_name + '_condi.npy', oh_list)
-
         sp = (sp - sp_min) / (sp_max - sp_min)
-        np.save(sp_folder + file_name + '_sp.npy', sp)
         ap = (ap - ap_min) / (ap_max - ap_min)
-        np.save(ap_folder + file_name + '_ap.npy', ap)
+        test = False
+        for n in test_names:
+            if n in file_name:
+                test = True
+        if test:
+            np.save(te_condition_folder + file_name + '_condi.npy', oh_list)
+            np.save(te_sp_folder + file_name + '_sp.npy', sp)
+            np.save(te_ap_folder + file_name + '_ap.npy', ap)
+        else:
+            np.save(condition_folder + file_name + '_condi.npy', oh_list)
+            np.save(sp_folder + file_name + '_sp.npy', sp)
+            np.save(ap_folder + file_name + '_ap.npy', ap)
 
         # np.save('prepared_data/f0.npy', f0)
 

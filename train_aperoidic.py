@@ -9,10 +9,9 @@ model = WaveNetModel(hparams.create_aperiodic_hparams(), device).to(device)
 print('model: ', model)
 print('receptive field: ', model.receptive_field)
 print('parameter count: ', model.parameter_count())
-data = TimbreDataset(data_folder='data/timbre_model', receptive_field=model.receptive_field, type=1)
-print('the dataset has ' + str(len(data)) + ' items')
+
 trainer = ModelTrainer(model=model,
-                         dataset=data,
+                         data_folder='data/timbre_model',
                          lr=0.0005,
                          weight_decay=0.0,
                          snapshot_path='./snapshots/aperiodic',
@@ -24,4 +23,4 @@ epoch = trainer.load_checkpoint('/Users/zhaowenxiao/pythonProj/torch_npss/snapsh
 
 print('start training...')
 trainer.train(batch_size=128,
-              epochs=1650)
+              epochs=1650 )

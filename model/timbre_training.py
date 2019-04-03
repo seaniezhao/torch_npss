@@ -4,6 +4,7 @@ import torch.utils.data
 import time
 import os
 import torch.nn as nn
+from data.dataset import TimbreDataset
 from datetime import datetime
 from torch.autograd import Variable
 from model.util import *
@@ -15,7 +16,7 @@ import matplotlib.pyplot as plt
 class ModelTrainer:
     def __init__(self,
                  model,
-                 dataset,
+                 data_folder,
                  device,
                  snapshot_path=None,
                  snapshot_name='snapshot',
@@ -25,7 +26,10 @@ class ModelTrainer:
                  temperature=0.01):
 
         self.model = model
-        self.dataset = dataset
+
+        self.trainset = TimbreDataset(data_folder=data_folder, receptive_field=model.receptive_field, type=model.model_type, train=True)
+        self.testset = TimbreDataset(data_folder=data_folder, receptive_field=model.receptive_field, type=model.model_type, train=False)
+
         self.dataloader = None
         self.lr = lr
         self.weight_decay = weight_decay
@@ -61,11 +65,18 @@ class ModelTrainer:
             self.model = nn.DataParallel(self.model)
             print('multiple device using :', self.device_count)
 
-        self.dataloader = torch.utils.data.DataLoader(self.dataset,
+        self.dataloader = torch.utils.data.DataLoader(self.trainset,
                                                       batch_size=batch_size,
                                                       shuffle=True,
                                                       num_workers=8,
                                                       pin_memory=False)
+
+        self.testdataloader = torch.utils.data.DataLoader(self.testset,
+                                                          batch_size=32,
+                                                          shuffle=False,
+                                                          num_workers=8,
+                                                          pin_memory=False)
+
         step = 0
         for current_epoch in range(epochs):
             print("epoch", current_epoch)
@@ -107,8 +118,9 @@ class ModelTrainer:
                     print("one training step does take approximately " + str((toc - tic) * 0.01) + " seconds)")
 
             self.save_model()
+            test_loss = self.validate()
             toc = time.time()
-            print("one epoch does take approximately " + str((toc - tic)) + " seconds), average loss: " + str(total_loss/epoch_step))
+            print("one epoch does take approximately " + str((toc - tic)) + " seconds), average loss: " + str(total_loss/epoch_step)+"  test loss: "+str(test_loss))
 
         self.save_model()
 
@@ -131,10 +143,32 @@ class ModelTrainer:
 
 
     def validate(self):
+
         self.model.eval()
 
+        total_loss = 0
+        epoch_step = 0
+        for (x, target) in iter(self.testdataloader):
+            x, condi = x
+            x = x.to(self.device)
+            condi = condi.to(self.device)
 
-        return None
+            target = target.to(self.device)
+
+            output = self.model(x, condi)
+            if self.model.model_type == 2:
+                loss = torch.mean((output.squeeze() - target.squeeze()) ** 2)
+            else:
+                loss = CGM_loss(output, target, self.temperature)
+
+            loss = loss.item()
+
+            total_loss += loss
+            epoch_step += 1
+
+        self.model.train()
+        avg_loss = total_loss/epoch_step
+        return avg_loss
 
     def save_model(self):
         if self.snapshot_path is None:
