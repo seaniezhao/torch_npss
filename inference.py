@@ -107,7 +107,7 @@ def get_first_input():
 
 def get_condition():
 
-    c_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/condition/nitech_jp_song070_f001_015_0_condi.npy'
+    c_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/test/condition/nitech_jp_song070_f001_040_0_condi.npy'
     conditon = np.load(c_path).astype(np.float)
     return torch.Tensor(conditon).transpose(0, 1)
 
@@ -150,7 +150,7 @@ if __name__ == '__main__':
     plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom', interpolation='none')
     plt.show()
 
-    sp1 = load_timbre('/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_015_0_sp.npy', 0, sp_max, sp_min)
+    sp1 = load_timbre('/home/sean/pythonProj/torch_npss/data/timbre_model/test/sp/nitech_jp_song070_f001_040_0_sp.npy', 0, sp_max, sp_min)
 
     plt.imshow(np.log(np.transpose(sp1)), aspect='auto', origin='bottom', interpolation='none')
     plt.show()
@@ -177,7 +177,7 @@ if __name__ == '__main__':
     # plt.plot(vuv1)
     # plt.show()
 
-    path = '/home/sean/pythonProj/torch_npss/data/cut_raw/nitech_jp_song070_f001_015_0.raw'
+    path = '/home/sean/pythonProj/torch_npss/data/cut_raw/nitech_jp_song070_f001_040_0.raw'
     _f0, _sp, _ap = process_wav(path)
     # 合成原始语音
     synthesized = pw.synthesize(_f0, sp, _ap, 32000, pw.default_frame_period)

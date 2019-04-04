@@ -28,6 +28,8 @@ class ModelTrainer:
         self.model = model
 
         self.trainset = TimbreDataset(data_folder=data_folder, receptive_field=model.receptive_field, type=model.model_type, train=True)
+        print('the dataset has ' + str(len(self.trainset)) + ' items')
+
         self.testset = TimbreDataset(data_folder=data_folder, receptive_field=model.receptive_field, type=model.model_type, train=False)
 
         self.dataloader = None
@@ -72,7 +74,7 @@ class ModelTrainer:
                                                       pin_memory=False)
 
         self.testdataloader = torch.utils.data.DataLoader(self.testset,
-                                                          batch_size=32,
+                                                          batch_size=batch_size,
                                                           shuffle=False,
                                                           num_workers=8,
                                                           pin_memory=False)
@@ -98,7 +100,7 @@ class ModelTrainer:
                 if self.model.model_type == 2:
                     loss = torch.mean((output.squeeze()-target.squeeze())**2)
                 else:
-                    loss = CGM_loss(output, target,  self.temperature)
+                    loss = CGM_loss(output, target)
 
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -159,7 +161,7 @@ class ModelTrainer:
             if self.model.model_type == 2:
                 loss = torch.mean((output.squeeze() - target.squeeze()) ** 2)
             else:
-                loss = CGM_loss(output, target, self.temperature)
+                loss = CGM_loss(output, target)
 
             loss = loss.item()
 

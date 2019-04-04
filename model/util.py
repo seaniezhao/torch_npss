@@ -7,6 +7,8 @@ from torch.distributions.normal import Normal
 # 计算 mu sigma 和 w
 def cal_para(out, temperature):
 
+    sqrt = math.sqrt
+
     cgm_factor = 4
     r_u = 1.6
     r_s = 1.1
@@ -26,10 +28,33 @@ def cal_para(out, temperature):
     alpha = 2 * torch.sigmoid(a2) - 1
     beta = 2 * torch.sigmoid(a3)
 
+    # cal temperature
+    use_t = False
+    if temperature != 0:
+        use_t = True
+        tempers = []
+        for i in range(xi.shape[-1]):
+            if i<=3:
+                temper = 0.05
+            elif i>=8:
+                temper = 0.5
+            else:
+                temper = 0.05 + (i-3)*0.09
+            tempers.append(temper)
+
+        tempers = torch.Tensor(tempers)
+        tempers = tempers.expand(xi.shape).cuda()
+        # if temperature != 0.01 mean it is for harmonic so it will be piecewise linear
+        if temperature != 0.01:
+            temperature = tempers
+            sqrt = torch.sqrt
+    # end cal temperature
+
     sigmas = []
     for k in range(cgm_factor):
         sigma = omega * torch.exp(k * (torch.abs(alpha) * r_s - 1))
-        sigma *= math.sqrt(temperature)
+        if use_t:
+            sigma *= sqrt(temperature)
         sigmas.append(sigma)
 
     mus = []
@@ -48,12 +73,13 @@ def cal_para(out, temperature):
         w = (alpha.pow(2 * k) * beta.pow(k) * (r_w ** k)) / temp_sum
         ws.append(w)
 
-    _mus = 0
-    for k in range(cgm_factor):
-        _mus += ws[k]*mus[k]
+    if use_t:
+        _mus = 0
+        for k in range(cgm_factor):
+            _mus += ws[k]*mus[k]
 
-    for k in range(cgm_factor):
-        mus[k] = mus[k] + (_mus - mus[k])*(1 - temperature)
+        for k in range(cgm_factor):
+            mus[k] = mus[k] + (_mus - mus[k])*(1 - temperature)
 
 
     return sigmas, mus, ws
@@ -62,10 +88,10 @@ def cal_para(out, temperature):
 #  l dim = (batch, output_channel * cgm_factor, length)
 
 
-def CGM_loss(out, y, temperature=0.01):
+def CGM_loss(out, y):
     y = y.permute(0, 2, 1)
 
-    sigmas, mus, ws = cal_para(out, temperature)
+    sigmas, mus, ws = cal_para(out, 0)
 
     #print(torch.mean(sigmas[0]))
     #  验证w之和是1
@@ -74,7 +100,6 @@ def CGM_loss(out, y, temperature=0.01):
         tw = ws[k].view(-1)
         sum += tw
 
-    # todo 增加tau 拉近分布之间距离
 
     #  alternative： torch.distributions.normal.Normal
     probs = 0
@@ -90,6 +115,7 @@ def CGM_loss(out, y, temperature=0.01):
 
 
 def sample_from_CGM(out, temperature=0.01):
+    #temperature = 0.01
     out = out.unsqueeze(1)
     out = out.unsqueeze(0)
     sigmas, mus, ws = cal_para(out, temperature)

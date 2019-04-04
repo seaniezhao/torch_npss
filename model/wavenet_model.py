@@ -211,7 +211,10 @@ class WaveNetModel(nn.Module):
                     x_sample = 1
                 x_sample = torch.Tensor([x_sample]).to(self.device).unsqueeze(0)
             else:
-                x_sample = sample_from_CGM(x.detach())
+                t =0.01
+                if self.model_type == 0:
+                    t = 0.05
+                x_sample = sample_from_CGM(x.detach(), t)
             generated[:, i] = x_sample.squeeze(0)
 
             # set new input
