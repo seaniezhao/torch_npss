@@ -4,13 +4,14 @@ import time
 from data.dataset import *
 from model.util import *
 import torch.nn as nn
+from torch.distributions.normal import Normal
 
 class WaveNetModel(nn.Module):
 
     def __init__(self, hparams, device):
 
         super(WaveNetModel, self).__init__()
-
+        self.noise_lambda = 0.4
         self.model_type = hparams.type
         self.layers = hparams.layers
         self.blocks = hparams.blocks
@@ -161,7 +162,9 @@ class WaveNetModel(nn.Module):
         return x
 
     def forward(self, input, condition):
-        x = self.wavenet(input, condition)
+        # input noise
+        dist = Normal(input, self.noise_lambda)
+        x = self.wavenet(dist.sample(), condition)
 
         return x
 

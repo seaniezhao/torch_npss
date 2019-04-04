@@ -5,7 +5,7 @@ import threading
 import torch
 import torch.utils.data
 import numpy as np
-from torch.distributions.normal import Normal
+#from torch.distributions.normal import Normal
 import librosa as lr
 import bisect
 
@@ -69,7 +69,6 @@ class TimbreDataset(torch.utils.data.Dataset):
                  data_folder,
                  receptive_field,
                  type = 0,
-                 noise_lambda =0.4,
                  target_length=1,
                  train=True):
 
@@ -77,7 +76,6 @@ class TimbreDataset(torch.utils.data.Dataset):
         # example:  | | | | | | | | | | | | | | | | | | | | |
         # target:                             |
         self.type = type
-        self.noise_lambda = noise_lambda
         self._receptive_field = receptive_field
         self.target_length = target_length
         self.item_length = self._receptive_field+self.target_length
@@ -165,15 +163,11 @@ class TimbreDataset(torch.utils.data.Dataset):
         vuv_target = vuv_sample[-self.target_length:]
 
         if self.type == 0:
-            # input noise
-            dist = Normal(sp_item, self.noise_lambda)
-            return (dist.sample(), item_condition), sp_target
+            return (sp_item, item_condition), sp_target
         elif self.type == 1:
-            dist = Normal(ap_item, self.noise_lambda)
-            return (dist.sample(), item_condition), ap_target
+            return (ap_item, item_condition), ap_target
         else:
-            dist = Normal(vuv_item, self.noise_lambda)
-            return (dist.sample(), item_condition), vuv_target
+            return (vuv_item, item_condition), vuv_target
 
 
     def __len__(self):
