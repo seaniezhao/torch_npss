@@ -10,10 +10,10 @@ print('receptive field: ', model.receptive_field)
 print('parameter count: ', model.parameter_count())
 trainer = ModelTrainer(model=model,
                        data_folder='data/timbre_model',
-                       lr=0.0005,
+                       lr=0.0001,
                        weight_decay=0.0,
-                       snapshot_path='./snapshots/harmonic',
-                       snapshot_name='harm',
+                       snapshot_path='./snapshots/harmonic_128',
+                       snapshot_name='harm128',
                        snapshot_interval=2000,
                        device=device,
                        temperature=0.05)
@@ -29,5 +29,5 @@ def exit_handler():
 #epoch = trainer.load_checkpoint('/home/sean/pythonProj/torch_npss/snapshots/harmonic/best_harmonic_model_1649_2019-03-31_17-43-00')
 
 print('start training...')
-trainer.train(batch_size=6720,
-              epochs=1650)
+trainer.train(batch_size=128,
+              epochs=3000)

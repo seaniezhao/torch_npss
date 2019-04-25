@@ -22,5 +22,5 @@ trainer = ModelTrainer(model=model,
 #epoch = trainer.load_checkpoint('/Users/zhaowenxiao/pythonProj/torch_npss/snapshots/aperiodic/chaconne_model_1021_2019-03-30_09-32-23')
 
 print('start training...')
-trainer.train(batch_size=128,
-              epochs=3000)
+trainer.train(batch_size=6720,
+              epochs=1650)

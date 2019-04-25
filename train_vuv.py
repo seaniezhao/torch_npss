@@ -21,5 +21,5 @@ trainer = ModelTrainer(model=model,
 
 
 print('start training...')
-trainer.train(batch_size=128,
-              epochs=3000)
+trainer.train(batch_size=6720,
+              epochs=1650)

@@ -4,6 +4,7 @@ import numpy as np
 import os
 import soundfile as sf
 import fnmatch
+from data_util import code_harmonic, decode_harmonic
 
 sp_min = 0
 sp_max = 0
@@ -26,7 +27,7 @@ te_ap_folder = 'timbre_model/test/ap/'
 te_vuv_folder = 'timbre_model/test/vuv/'
 te_condition_folder = 'timbre_model/test/condition/'
 
-f0_bin = 1024
+f0_bin = 128
 
 #  transfer wav data to three features and store as npy format
 def process_wav(wav_path):
@@ -44,7 +45,7 @@ def process_wav(wav_path):
     #使用CheapTrick算法计算音频的频谱包络
     _sp = pw.cheaptrick(y, _f0, t, sr)
     
-    code_sp = pw.code_spectral_envelope(_sp, sr, 60)
+    code_sp = code_harmonic(_sp, 60)
     print(_sp.shape, code_sp.shape)
     #计算aperiodic参数
     _ap = pw.d4c(y, _f0, t, sr)
@@ -180,7 +181,7 @@ if __name__ == '__main__':
                 if item not in all_phon:
                     all_phon.append(item)
 
-            data_to_save.append((file_name, time_phon_list, f0, sp, ap))
+            data_to_save.append((file_name, time_phon_list, f0, sp, ap, v_uv))
 
             _sp_min = np.min(sp)
             _sp_max = np.max(sp)
@@ -196,14 +197,12 @@ if __name__ == '__main__':
             if _ap_max > ap_max:
                 ap_max = _ap_max
 
-            np.save(vuv_folder + file_name + '_vuv.npy', v_uv)
-
 
     np.save('timbre_model/min_max_record.npy', [sp_min, sp_max, ap_min, ap_max])
     np.save('timbre_model/all_phonetic.npy', all_phon)
 
 
-    for file_name, time_phon_list, f0, sp, ap in data_to_save:
+    for file_name, time_phon_list, f0, sp, ap, v_uv in data_to_save:
         oh_list = process_timbre_model_condition(time_phon_list, all_phon, f0)
         sp = (sp - sp_min) / (sp_max - sp_min)
         ap = (ap - ap_min) / (ap_max - ap_min)
@@ -215,12 +214,13 @@ if __name__ == '__main__':
             np.save(te_condition_folder + file_name + '_condi.npy', oh_list)
             np.save(te_sp_folder + file_name + '_sp.npy', sp)
             np.save(te_ap_folder + file_name + '_ap.npy', ap)
+            np.save(te_vuv_folder + file_name + '_vuv.npy', v_uv)
         else:
             np.save(condition_folder + file_name + '_condi.npy', oh_list)
             np.save(sp_folder + file_name + '_sp.npy', sp)
             np.save(ap_folder + file_name + '_ap.npy', ap)
+            np.save(vuv_folder + file_name + '_vuv.npy', v_uv)
 
         # np.save('prepared_data/f0.npy', f0)
-
 
 

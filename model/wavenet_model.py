@@ -11,7 +11,7 @@ class WaveNetModel(nn.Module):
     def __init__(self, hparams, device):
 
         super(WaveNetModel, self).__init__()
-        self.noise_lambda = 0.4
+        self.noise_lambda = 0.2
         self.model_type = hparams.type
         self.layers = hparams.layers
         self.blocks = hparams.blocks
