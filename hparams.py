@@ -70,7 +70,7 @@ def create_vuv_hparams(hparams_string=None, verbose=False):
         residual_channels=20,
         skip_channels=4,
         input_channel=65,
-        condition_channel=1126,
+        condition_channel=230,
         output_channel=1,
         sample_channel=1,
         initial_kernel=10,

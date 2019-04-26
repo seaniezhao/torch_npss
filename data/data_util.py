@@ -18,14 +18,28 @@ en_floor = 10 ** (-80 / 20)
 
 
 def code_harmonic(sp, order):
+
+    #get mcep
     mceps = np.apply_along_axis(pysptk.mcep, 1, sp, order - 1, alpha, itype=mcepInput, threshold=en_floor)
-    mfsc = fftpack.dct(mceps, norm='ortho')
+
+    #do fft and take real
+    scale_mceps = copy.copy(mceps)
+    scale_mceps[:, 0] *= 2
+    scale_mceps[:, -1] *= 2
+    mirror = np.hstack([scale_mceps[:, :-1], scale_mceps[:, -1:0:-1]])
+    mfsc = np.fft.rfft(mirror).real
 
     return mfsc
 
 
 def decode_harmonic(mfsc, fftlen):
-    mceps = fftpack.idct(mfsc, norm='ortho')
+    # get mcep back
+    mceps_mirror = np.fft.irfft(mfsc)
+    mceps_back = mceps_mirror[:, :60]
+    mceps_back[:, 0] /= 2
+    mceps_back[:, -1] /= 2
+
+    #get sp
     spSm = np.exp(np.apply_along_axis(pysptk.mgc2sp, 1, mceps, alpha, gamma, fftlen=fftlen).real)
 
     return spSm
