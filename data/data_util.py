@@ -40,13 +40,13 @@ def decode_harmonic(mfsc, fftlen):
     mceps_back[:, -1] /= 2
 
     #get sp
-    spSm = np.exp(np.apply_along_axis(pysptk.mgc2sp, 1, mceps, alpha, gamma, fftlen=fftlen).real)
+    spSm = np.exp(np.apply_along_axis(pysptk.mgc2sp, 1, mceps_back, alpha, gamma, fftlen=fftlen).real)
 
     return spSm
 
 
 if __name__ == '__main__':
-    y, osr = sf.read('cut_raw/nitech_jp_song070_f001_004_1.raw', subtype='PCM_16', channels=1, samplerate=48000,
+    y, osr = sf.read('cut_raw/nitech_jp_song070_f001_040_1.raw', subtype='PCM_16', channels=1, samplerate=48000,
                      endian='LITTLE')  # , start=56640, stop=262560)
 
     sr = 32000
@@ -138,7 +138,7 @@ if __name__ == '__main__':
 
     synthesized = pw.synthesize(_f0, spSm, _ap, 32000, pw.default_frame_period)
     # 1.输出原始语音
-    sf.write('gen_wav/fffff.wav', synthesized, 32000)
+    sf.write('gen_wav/dct.wav', synthesized, 32000)
 
     # mgc = pysptk.mcep(np.sqrt(fft), 59, 0.35, itype=3)
     # mfsc = np.exp(pysptk.mgc2sp(mgc, 0.35, fftlen=2048).real)

@@ -22,8 +22,7 @@ class ModelTrainer:
                  snapshot_name='snapshot',
                  snapshot_interval=1000,
                  lr=0.0005,
-                 weight_decay=0,
-                 temperature=0.01):
+                 weight_decay=0):
 
         self.model = model
 
@@ -36,7 +35,7 @@ class ModelTrainer:
         self.lr = lr
         self.weight_decay = weight_decay
         self.device = device
-        self.temperature = temperature
+
 
         self.snapshot_path = snapshot_path
         self.snapshot_name = snapshot_name
