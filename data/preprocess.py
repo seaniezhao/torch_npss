@@ -28,7 +28,8 @@ te_vuv_folder = 'timbre_model/test/vuv/'
 te_condition_folder = 'timbre_model/test/condition/'
 
 f0_bin = 128
-
+f0_max = 800.0
+f0_min = 50.0
 #  transfer wav data to three features and store as npy format
 def process_wav(wav_path):
     y, osr = sf.read(wav_path, subtype='PCM_16', channels=1, samplerate=48000,
@@ -39,7 +40,7 @@ def process_wav(wav_path):
         y = librosa.resample(y, osr, sr)
 
     #使用DIO算法计算音频的基频F0
-    _f0, t = pw.dio(y, sr, f0_floor=50.0, f0_ceil=800.0, channels_in_octave=2, frame_period=pw.default_frame_period)
+    _f0, t = pw.dio(y, sr, f0_floor=f0_min, f0_ceil=f0_max, channels_in_octave=2, frame_period=pw.default_frame_period)
     print(_f0.shape)
 
     #使用CheapTrick算法计算音频的频谱包络
@@ -81,7 +82,7 @@ def process_phon_label(label_path):
 
 def process_timbre_model_condition(time_phon_list, all_phon, f0):
 
-    f0_coarse = np.rint(f0*(f0_bin-1)/np.max(f0)).astype(np.int)
+    f0_coarse = np.rint((f0-f0_min)*(f0_bin-1)/(f0_max - f0_min)).astype(np.int)
     print(np.max(f0_coarse))
 
     label_list = []
@@ -103,10 +104,10 @@ def process_timbre_model_condition(time_phon_list, all_phon, f0):
 
                 begin = time_phon_list[j][0]
                 end = time_phon_list[j][1]
-                width = end - begin + 1
-                if i - begin <= width / 3:
+                width = end - begin
+                if i - begin < width / 3:
                     pos_in_phon = 0
-                elif width / 3 < i - begin <= 2 * width / 3:
+                elif width / 3 <= i - begin < 2 * width / 3:
                     pos_in_phon = 1
                 else:
                     pos_in_phon = 2
