@@ -42,6 +42,7 @@ def cal_para(out, temperature):
                 temper = 0.05 + (i-3)*0.09
             tempers.append(temper)
 
+        #tempers = tempers[::-1]
         tempers = torch.Tensor(tempers)
         tempers = tempers.expand(xi.shape).cuda()
         # if temperature != 0.01 mean it is for harmonic so it will be piecewise linear

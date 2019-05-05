@@ -1,33 +1,32 @@
-import hparams
-from model.wavenet_model import *
-from model.timbre_training import *
+import re
+import numpy as np
+import matplotlib.pyplot as plt
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+file = open('harmonic0_0005.log', 'r')
 
-model = WaveNetModel(hparams.create_harmonic_hparams(), device).to(device)
-print('model: ', model)
-print('receptive field: ', model.receptive_field)
-print('parameter count: ', model.parameter_count())
-trainer = ModelTrainer(model=model,
-                       data_folder='data/timbre_model',
-                       lr=0.0001,
-                       weight_decay=0.0,
-                       snapshot_path='./snapshots/harmonic_128',
-                       snapshot_name='harm128',
-                       snapshot_interval=2000,
-                       device=device,
-                       temperature=0.05)
+text_content = file.read()
+print(text_content)
+
+#train = '(?<=average loss:)\s*\d*\.\d*'
+pttern = re.compile(r'(?<=average loss: )\-*\s*\d*\.\d*')
+train_loss = np.array(re.findall(pttern, text_content)).astype(np.float32)
+
+t_pttern = re.compile(r'(?<=test loss: )\-*\s*\d*\.\d*')
+test_loss = np.array(re.findall(t_pttern, text_content)).astype(np.float32)
+test_loss[test_loss>1] /=100000
 
 
-def exit_handler():
-    trainer.save_model()
-    print("exit from keyboard")
+lst_iter = [i for i in range(1650)]
 
+title = 'weight_decay_loss'
+plt.plot(train_loss, '-b', label='train')
+plt.plot(test_loss, '-r', label='test')
 
-#atexit.register(exit_handler)
+plt.xlabel("n epoch")
+plt.title(title)
 
-#epoch = trainer.load_checkpoint('/home/sean/pythonProj/torch_npss/snapshots/harmonic/best_harmonic_model_1649_2019-03-31_17-43-00')
+# save image
+plt.savefig(title+".png")  # should before show method
 
-print('start training...')
-trainer.train(batch_size=128,
-              epochs=3000)
+# show
+plt.show()

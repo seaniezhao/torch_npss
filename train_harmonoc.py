@@ -11,9 +11,9 @@ print('parameter count: ', model.parameter_count())
 trainer = ModelTrainer(model=model,
                        data_folder='data/timbre_model',
                        lr=0.0005,
-                       weight_decay=0.0001,
-                       snapshot_path='./snapshots/harmonic',
-                       snapshot_name='harm0_0001',
+                       weight_decay=0,
+                       snapshot_path='./snapshots/harmonic0',
+                       snapshot_name='harm0',
                        snapshot_interval=2000,
                        device=device)
 
