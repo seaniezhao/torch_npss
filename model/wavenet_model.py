@@ -5,6 +5,7 @@ from data.dataset import *
 from model.util import *
 import torch.nn as nn
 from torch.distributions.normal import Normal
+from torch.distributions.multivariate_normal import MultivariateNormal
 
 class WaveNetModel(nn.Module):
 
@@ -163,9 +164,20 @@ class WaveNetModel(nn.Module):
 
     def forward(self, input, condition):
         # input noise
+        # input shape : (B, N, L) for harmonic N = 60 = self.sample_channel
+        # if self.sample_channel == 1:
+        #     dist = Normal(input, self.noise_lambda)
+        #     x = self.wavenet(dist.sample(), condition)
+        # else:
+        #     input = input.permute(0, 2, 1)
+        #     sigmas = self.noise_lambda * torch.eye(self.sample_channel)
+        #     sigmas = sigmas.repeat(input.shape[0], input.shape[1], 1, 1).to(self.device)
+        #     dist = MultivariateNormal(input, sigmas)
+        #     r_input = dist.sample().permute(0, 2, 1)
+        #     x = self.wavenet(r_input, condition)
+
         dist = Normal(input, self.noise_lambda)
         x = self.wavenet(dist.sample(), condition)
-
         return x
 
     def parameter_count(self):

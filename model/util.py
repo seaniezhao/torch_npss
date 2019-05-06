@@ -54,8 +54,6 @@ def cal_para(out, temperature):
     sigmas = []
     for k in range(cgm_factor):
         sigma = omega * torch.exp(k * (torch.abs(alpha) * r_s - 1))
-        if use_t:
-            sigma *= sqrt(temperature)
         sigmas.append(sigma)
 
     mus = []
@@ -67,10 +65,10 @@ def cal_para(out, temperature):
         mus.append(mu)
 
     ws = []
+    temp_sum = 0
+    for i in range(cgm_factor):
+        temp_sum += alpha.pow(2 * i) * beta.pow(i) * (r_w ** i)
     for k in range(cgm_factor):
-        temp_sum = 0
-        for i in range(4):
-            temp_sum += alpha.pow(2 * i) * beta.pow(i) * (r_w ** i)
         w = (alpha.pow(2 * k) * beta.pow(k) * (r_w ** k)) / temp_sum
         ws.append(w)
 
@@ -81,6 +79,7 @@ def cal_para(out, temperature):
 
         for k in range(cgm_factor):
             mus[k] = mus[k] + (_mus - mus[k])*(1 - temperature)
+            sigmas[k] *= sqrt(temperature)
 
 
     return sigmas, mus, ws
@@ -88,7 +87,7 @@ def cal_para(out, temperature):
 #  x dim = (batch, output_channel, length)
 #  l dim = (batch, output_channel * cgm_factor, length)
 
-
+#########
 def CGM_loss(out, y):
     y = y.permute(0, 2, 1)
 

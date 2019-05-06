@@ -50,6 +50,8 @@ class ModelTrainer:
         self.start_epoch = 0
         self.epoch = 0
 
+        self.model_type = self.model.model_type
+
     def adjust_learning_rate(self):
 
         real_epoch = self.start_epoch + self.epoch
@@ -96,7 +98,7 @@ class ModelTrainer:
                 target = target.to(self.device)
 
                 output = self.model(x, condi)
-                if self.model.model_type == 2:
+                if self.model_type == 2:
                     loss = torch.mean((output.squeeze()-target.squeeze())**2)
                 else:
                     loss = CGM_loss(output, target)
