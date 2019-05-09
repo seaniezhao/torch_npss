@@ -27,8 +27,8 @@ te_ap_folder = 'timbre_model/test/ap/'
 te_vuv_folder = 'timbre_model/test/vuv/'
 te_condition_folder = 'timbre_model/test/condition/'
 
-f0_bin = 128
-f0_max = 800.0
+f0_bin = 256
+f0_max = 1100.0
 f0_min = 50.0
 #  transfer wav data to three features and store as npy format
 def process_wav(wav_path):
@@ -39,13 +39,14 @@ def process_wav(wav_path):
     if osr != sr:
         y = librosa.resample(y, osr, sr)
 
-    #使用DIO算法计算音频的基频F0
-    _f0, t = pw.dio(y, sr, f0_floor=f0_min, f0_ceil=f0_max, channels_in_octave=2, frame_period=pw.default_frame_period)
+    #使用harvest算法计算音频的基频F0
+    _f0, t = pw.dio(y, sr, f0_floor=f0_min, f0_ceil=f0_max, frame_period=pw.default_frame_period)
+    _f0 = pw.stonemask(y, _f0, t, sr)
     print(_f0.shape)
 
     #使用CheapTrick算法计算音频的频谱包络
     _sp = pw.cheaptrick(y, _f0, t, sr)
-    
+
     code_sp = code_harmonic(_sp, 60)
     print(_sp.shape, code_sp.shape)
     #计算aperiodic参数
@@ -54,7 +55,7 @@ def process_wav(wav_path):
     code_ap = pw.code_aperiodicity(_ap, sr)
     print(_ap.shape, code_ap.shape)
 
-    return _f0, code_sp, code_ap
+    return _f0, _sp, code_sp, _ap, code_ap
 
 
 def process_phon_label(label_path):
@@ -82,8 +83,9 @@ def process_phon_label(label_path):
 
 def process_timbre_model_condition(time_phon_list, all_phon, f0):
 
-    f0_coarse = np.rint((f0-f0_min)*(f0_bin-1)/(f0_max - f0_min)).astype(np.int)
-    print(np.max(f0_coarse))
+    f0_coarse = np.rint(f0*(f0_bin-1)/f0_max).astype(np.int)
+    f0_coarse[f0_coarse>255] = 255
+    print('Max f0', np.max(f0_coarse))
 
     label_list = []
     oh_list = []
@@ -129,7 +131,8 @@ def process_timbre_model_condition(time_phon_list, all_phon, f0):
 
         oh_list.append(
             np.concatenate((pre_phn_oh, cur_phn_oh, next_phn_oh, pos_in_phon_oh, f0_coarse_oh)).astype(np.int8))
-        print(len(oh_list[-1]), np.sum(oh_list[-1]))
+        if i == len(f0) - 1:
+            print(len(oh_list[-1]), np.sum(oh_list[-1]))
 
     return oh_list
 
@@ -174,7 +177,7 @@ if __name__ == '__main__':
             file_name = file.replace('.raw','')
             raw_path = os.path.join(dirpath, file)
             txt_path = raw_path.replace('.raw', '.lab')
-            f0, sp, ap = process_wav(raw_path)
+            f0, _sp, code_sp, _ap, code_ap = process_wav(raw_path)
             v_uv = f0 > 0
 
             time_phon_list, phon_list = process_phon_label(txt_path)
@@ -182,17 +185,17 @@ if __name__ == '__main__':
                 if item not in all_phon:
                     all_phon.append(item)
 
-            data_to_save.append((file_name, time_phon_list, f0, sp, ap, v_uv))
+            data_to_save.append((file_name, time_phon_list, f0, code_sp, code_ap, v_uv))
 
-            _sp_min = np.min(sp)
-            _sp_max = np.max(sp)
+            _sp_min = np.min(code_sp)
+            _sp_max = np.max(code_sp)
             if _sp_min < sp_min:
                 sp_min = _sp_min
             if _sp_max > sp_max:
                 sp_max = _sp_max
 
-            _ap_min = np.min(ap)
-            _ap_max = np.max(ap)
+            _ap_min = np.min(code_ap)
+            _ap_max = np.max(code_ap)
             if _ap_min < ap_min:
                 ap_min = _ap_min
             if _ap_max > ap_max:
@@ -203,23 +206,23 @@ if __name__ == '__main__':
     np.save('timbre_model/all_phonetic.npy', all_phon)
 
 
-    for file_name, time_phon_list, f0, sp, ap, v_uv in data_to_save:
+    for file_name, time_phon_list, f0, code_sp, code_ap, v_uv in data_to_save:
         oh_list = process_timbre_model_condition(time_phon_list, all_phon, f0)
-        sp = (sp - sp_min) / (sp_max - sp_min)
-        ap = (ap - ap_min) / (ap_max - ap_min)
+        code_sp = (code_sp - sp_min) / (sp_max - sp_min)
+        code_ap = (code_ap - ap_min) / (ap_max - ap_min)
         test = False
         for n in test_names:
             if n in file_name:
                 test = True
         if test:
             np.save(te_condition_folder + file_name + '_condi.npy', oh_list)
-            np.save(te_sp_folder + file_name + '_sp.npy', sp)
-            np.save(te_ap_folder + file_name + '_ap.npy', ap)
+            np.save(te_sp_folder + file_name + '_sp.npy', code_sp)
+            np.save(te_ap_folder + file_name + '_ap.npy', code_ap)
             np.save(te_vuv_folder + file_name + '_vuv.npy', v_uv)
         else:
             np.save(condition_folder + file_name + '_condi.npy', oh_list)
-            np.save(sp_folder + file_name + '_sp.npy', sp)
-            np.save(ap_folder + file_name + '_ap.npy', ap)
+            np.save(sp_folder + file_name + '_sp.npy', code_sp)
+            np.save(ap_folder + file_name + '_ap.npy', code_ap)
             np.save(vuv_folder + file_name + '_vuv.npy', v_uv)
 
         # np.save('prepared_data/f0.npy', f0)

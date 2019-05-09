@@ -36,10 +36,10 @@ def cal_para(out, temperature):
         for i in range(xi.shape[-1]):
             if i<=3:
                 temper = 0.05
-            elif i>=8:
-                temper = 0.5
+            elif i>=29:
+                temper = 0.3
             else:
-                temper = 0.05 + (i-3)*0.09
+                temper = 0.05 + (i-3)*0.001
             tempers.append(temper)
 
         #tempers = tempers[::-1]
@@ -87,7 +87,7 @@ def cal_para(out, temperature):
 #  x dim = (batch, output_channel, length)
 #  l dim = (batch, output_channel * cgm_factor, length)
 
-#########
+
 def CGM_loss(out, y):
     y = y.permute(0, 2, 1)
 

@@ -159,7 +159,7 @@ class ModelTrainer:
             target = target.to(self.device)
 
             output = self.model(x, condi)
-            if self.model.model_type == 2:
+            if self.model_type == 2:
                 loss = torch.mean((output.squeeze() - target.squeeze()) ** 2)
             else:
                 loss = CGM_loss(output, target)
