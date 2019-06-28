@@ -108,11 +108,17 @@ def process_timbre_model_condition(time_phon_list, all_phon, f0):
                 end = time_phon_list[j][1]
                 width = end - begin
 
+                # 正常语速1分钟200个字
+                if width < 60:
+                    fpos = width / 3
+                    spos = 2 * width / 3
+                else:
+                    fpos = 20
+                    spos = width-20
 
-
-                if i - begin < width / 3:
+                if i - begin < fpos:
                     pos_in_phon = 0
-                elif width / 3 <= i - begin < 2 * width / 3:
+                elif fpos <= i - begin < spos:
                     pos_in_phon = 1
                 else:
                     pos_in_phon = 2
