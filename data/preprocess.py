@@ -109,12 +109,12 @@ def process_timbre_model_condition(time_phon_list, all_phon, f0):
                 width = end - begin
 
                 # 正常语速1分钟200个字
-                if width < 60:
+                if width < 150:
                     fpos = width / 3
                     spos = 2 * width / 3
                 else:
-                    fpos = 20
-                    spos = width-20
+                    fpos = 50
+                    spos = width-50
 
                 if i - begin < fpos:
                     pos_in_phon = 0
@@ -175,7 +175,7 @@ if __name__ == '__main__':
 
     test_names = ['nitech_jp_song070_f001_015', 'nitech_jp_song070_f001_029', 'nitech_jp_song070_f001_040']
 
-    raw_folder = './raw_one'
+    raw_folder = './raw'
 
     all_phon = ['none']
     data_to_save = []

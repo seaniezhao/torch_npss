@@ -12,7 +12,7 @@ def create_harmonic_hparams(hparams_string=None, verbose=False):
         residual_channels=130,
         skip_channels=240,
         input_channel=60,
-        condition_channel=343,
+        condition_channel=364,
         output_channel=240,
         sample_channel=60,
         initial_kernel=10,
