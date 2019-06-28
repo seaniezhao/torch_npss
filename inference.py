@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import soundfile as sf
 from data.preprocess import process_wav
+from data_util import decode_harmonic
 import librosa
 
 fft_size = 2048
@@ -41,8 +42,8 @@ def load_latest_model_from(mtype, location):
 def load_timbre(path, m_type, mx, mn):
     load_t = np.load(path).astype(np.double)
 
-    load_t = load_t * (mx - mn) + mn
-    decode_sp = pw.decode_spectral_envelope(load_t, 32000, fft_size)
+    load_t = (load_t + 0.5) * (mx - mn) + mn
+    decode_sp = decode_harmonic(load_t, fft_size)
     if m_type == 1:
         decode_sp = pw.decode_aperiodicity(load_t, 32000, fft_size)
 
@@ -50,26 +51,26 @@ def load_timbre(path, m_type, mx, mn):
 
 
 #  type 0:harmonic, 1:aperiodic,
-def generate_timbre(m_type, mx, mn, condition, cat_input=None, init_input=None):
+def generate_timbre(m_type, mx, mn, condition, cat_input=None):
     model_path = 'snapshots/harmonic'
     if m_type == 1:
         model_path = 'snapshots/aperiodic'
     model = load_latest_model_from(m_type, model_path)
-    raw_gen = model.generate(condition, cat_input, init_input)
-    sample = raw_gen.transpose(0, 1).cpu().numpy().astype(np.double) * (mx - mn) + mn
+    raw_gen = model.generate(condition, cat_input)
+    sample = (raw_gen.transpose(0, 1).cpu().numpy().astype(np.double)+0.5) * (mx - mn) + mn
 
     decode_sp = None
     if m_type == 0:
-        decode_sp = pw.decode_spectral_envelope(sample, 32000, fft_size)
+        decode_sp = decode_harmonic(sample, fft_size)
     elif m_type == 1:
         decode_sp = pw.decode_aperiodicity(sample, 32000, fft_size)
 
     return decode_sp, raw_gen
 
-def generate_vuv(condition, cat_input, init_input=None):
+def generate_vuv(condition, cat_input):
     model_path = 'snapshots/vuv'
     model = load_latest_model_from(2, model_path)
-    gen = model.generate(condition, cat_input, init_input).squeeze()
+    gen = model.generate(condition, cat_input).squeeze()
 
     return gen.cpu().numpy().astype(np.uint8)
 
@@ -108,7 +109,7 @@ def get_first_input():
 
 def get_condition():
 
-    c_path = 'data/timbre_model/test/condition/nitech_jp_song070_f001_040_0_condi.npy'
+    c_path = 'data/timbre_model/train/condition/nitech_jp_song070_f001_003_condi.npy'
     conditon = np.load(c_path).astype(np.float)
     return torch.Tensor(conditon).transpose(0, 1)
 
@@ -122,12 +123,12 @@ if __name__ == '__main__':
     #cat_input = get_ap_cat()
     #fist_input = get_first_input()
 
-    sp, raw_sp = generate_timbre(0, sp_max, sp_min, condi, None, None)
+    sp, raw_sp = generate_timbre(0, sp_max, sp_min, condi, None)
 
     plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom', interpolation='none')
     plt.show()
 
-    sp1 = load_timbre('data/timbre_model/test/sp/nitech_jp_song070_f001_040_0_sp.npy', 0, sp_max, sp_min)
+    sp1 = load_timbre('data/timbre_model/train/sp/nitech_jp_song070_f001_003_sp.npy', 0, sp_max, sp_min)
 
     plt.imshow(np.log(np.transpose(sp1)), aspect='auto', origin='bottom', interpolation='none')
     plt.show()
@@ -154,7 +155,7 @@ if __name__ == '__main__':
     # plt.plot(vuv1)
     # plt.show()
 
-    path = 'data/cut_raw/nitech_jp_song070_f001_040_0.raw'
+    path = 'data/raw_one/nitech_jp_song070_f001_003.raw'
     _f0, _sp, code_sp, _ap, code_ap = process_wav(path)
     # 合成原始语音
     synthesized = pw.synthesize(_f0, sp, _ap, 32000, pw.default_frame_period)

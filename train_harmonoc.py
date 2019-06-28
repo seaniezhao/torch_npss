@@ -11,7 +11,7 @@ print('parameter count: ', model.parameter_count())
 trainer = ModelTrainer(model=model,
                        data_folder='data/timbre_model',
                        lr=0.0005,
-                       weight_decay=0.0003,
+                       weight_decay=0.0001,
                        snapshot_path='./snapshots/harmonic',
                        snapshot_name='harm',
                        snapshot_interval=2000,
@@ -28,5 +28,5 @@ def exit_handler():
 #epoch = trainer.load_checkpoint('/home/sean/pythonProj/torch_npss/snapshots/harmonic/best_harmonic_model_1649_2019-03-31_17-43-00')
 
 print('start training...')
-trainer.train(batch_size=6720,
+trainer.train(batch_size=32,
               epochs=1650)

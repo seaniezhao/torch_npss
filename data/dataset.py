@@ -69,16 +69,17 @@ class TimbreDataset(torch.utils.data.Dataset):
                  data_folder,
                  receptive_field,
                  type = 0,
-                 target_length=1,
+                 target_length=210,
                  train=True):
 
         #           |----receptive_field----|
         # example:  | | | | | | | | | | | | | | | | | | | | |
-        # target:                             |
+        # target:                             | | | | | | | | |
         self.type = type
         self._receptive_field = receptive_field
         self.target_length = target_length
-        self.item_length = self._receptive_field+self.target_length
+        # 错开一位，其它的在模型中pad
+        self.item_length = 1+self.target_length
 
         if train:
             data_folder = os.path.join(data_folder, 'train')
@@ -103,12 +104,13 @@ class TimbreDataset(torch.utils.data.Dataset):
             condition = np.load(os.path.join(condi_folder, name+'_condi.npy')).astype(np.float)
 
             assert len(sp) == len(ap) == len(vuv) == len(condition)
-            self.data_lengths.append(len(sp))
+
+            self.data_lengths.append(math.ceil(len(sp)/target_length))
 
             # pad zeros(_receptive_field, 60) ahead for each data
-            sp = np.pad(sp, ((self._receptive_field, 0), (0, 0)), 'constant', constant_values=0)
-            ap = np.pad(ap, ((self._receptive_field, 0), (0, 0)), 'constant', constant_values=0)
-            vuv = np.pad(vuv, (self._receptive_field, 0), 'constant', constant_values=0)
+            sp = np.pad(sp, ((1, 0), (0, 0)), 'constant', constant_values=0)
+            ap = np.pad(ap, ((1, 0), (0, 0)), 'constant', constant_values=0)
+            vuv = np.pad(vuv, (1, 0), 'constant', constant_values=0)
 
             self.dataset_files.append((sp, ap, vuv, condition))
             # for test
@@ -124,8 +126,7 @@ class TimbreDataset(torch.utils.data.Dataset):
 
         self._length = 0
         for _len in self.data_lengths:
-            available_length = _len
-            self._length += math.floor(available_length / self.target_length)
+            self._length += _len
 
 
     def __getitem__(self, idx):
@@ -142,14 +143,19 @@ class TimbreDataset(torch.utils.data.Dataset):
                 break
 
         sp, ap, vuv, condition = current_files
-        target_index = current_files_idx * self.target_length
-        item_condition = torch.Tensor(condition[target_index]).unsqueeze(1)
+        target_index = current_files_idx*self.target_length
+        short_sample = self.target_length - (len(sp) - 1 - target_index)
+        if short_sample > 0:
+            target_index -= short_sample
+        item_condition = torch.Tensor(condition[target_index:target_index+self.target_length, :]).transpose(0, 1)
 
-        # notice we pad _receptive_field before so
+        # notice we pad 1 before so
         sp_sample = torch.Tensor(sp[target_index:target_index+self.item_length, :]).transpose(0, 1)
-        sp_item = sp_sample[:, :self._receptive_field]
+        sp_item = sp_sample[:, :self.target_length]
         sp_target = sp_sample[:, -self.target_length:]
 
+        return (sp_item, item_condition), sp_target
+        # todo
         ap_sample = torch.Tensor(ap[target_index:target_index + self.item_length, :]).transpose(0, 1)
         ap_item = ap_sample[:, :self._receptive_field]
         ap_item = torch.cat((ap_item, sp_item), 0)

@@ -40,7 +40,7 @@ def process_wav(wav_path):
         y = librosa.resample(y, osr, sr)
 
     #使用harvest算法计算音频的基频F0
-    _f0, t = pw.dio(y, sr, f0_floor=f0_min, f0_ceil=f0_max, frame_period=pw.default_frame_period)
+    _f0, t = pw.harvest(y, sr, f0_floor=f0_min, f0_ceil=f0_max, frame_period=pw.default_frame_period)
     _f0 = pw.stonemask(y, _f0, t, sr)
     print(_f0.shape)
 
@@ -107,6 +107,9 @@ def process_timbre_model_condition(time_phon_list, all_phon, f0):
                 begin = time_phon_list[j][0]
                 end = time_phon_list[j][1]
                 width = end - begin
+
+
+
                 if i - begin < width / 3:
                     pos_in_phon = 0
                 elif width / 3 <= i - begin < 2 * width / 3:
@@ -166,7 +169,7 @@ if __name__ == '__main__':
 
     test_names = ['nitech_jp_song070_f001_015', 'nitech_jp_song070_f001_029', 'nitech_jp_song070_f001_040']
 
-    raw_folder = './cut_raw'
+    raw_folder = './raw_one'
 
     all_phon = ['none']
     data_to_save = []
@@ -208,8 +211,10 @@ if __name__ == '__main__':
 
     for file_name, time_phon_list, f0, code_sp, code_ap, v_uv in data_to_save:
         oh_list = process_timbre_model_condition(time_phon_list, all_phon, f0)
-        code_sp = (code_sp - sp_min) / (sp_max - sp_min)
-        code_ap = (code_ap - ap_min) / (ap_max - ap_min)
+
+        code_sp = (code_sp - sp_min) / (sp_max - sp_min) - 0.5
+        code_ap = (code_ap - ap_min) / (ap_max - ap_min) - 0.5
+
         test = False
         for n in test_names:
             if n in file_name:
