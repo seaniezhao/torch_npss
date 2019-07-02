@@ -120,7 +120,7 @@ class ModelTrainer:
                     toc = time.time()
                     print("one training step does take approximately " + str((toc - tic) * 0.01) + " seconds)")
 
-            self.save_model()
+            #self.save_model()
             test_loss = self.validate()
             toc = time.time()
             print("one epoch does take approximately " + str((toc - tic)) + " seconds), average loss: " + str(total_loss/epoch_step)+"  test loss: "+str(test_loss))

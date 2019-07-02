@@ -83,9 +83,21 @@ def process_phon_label(label_path):
 
 def process_timbre_model_condition(time_phon_list, all_phon, f0):
 
-    f0_coarse = np.rint(f0*(f0_bin-1)/f0_max).astype(np.int)
-    f0_coarse[f0_coarse>255] = 255
-    print('Max f0', np.max(f0_coarse))
+    # process f0
+    # mappling to mel scale
+
+    f0_mel = 1127 * np.log(1 + f0 / 700)
+    f0_mel_min = 1127 * np.log(1 + f0_min / 700)
+    f0_mel_max = 1127 * np.log(1 + f0_max / 700)
+    # f0_mel[f0_mel == 0] = 0
+    # 大于0的分为255个箱
+    f0_mel[f0_mel > 0] = (f0_mel[f0_mel > 0] - f0_mel_min) * (f0_bin - 2) / (f0_mel_max - f0_mel_min) + 1
+
+    f0_mel[f0_mel < 0] = 1
+    f0_mel[f0_mel > f0_bin - 1] = f0_bin - 1
+    f0_coarse = np.rint(f0_mel).astype(np.int)
+    print('Max f0', np.max(f0_coarse), ' ||Min f0', np.min(f0_coarse))
+    assert (np.max(f0_coarse) <= 256 and np.min(f0_coarse) >= 0)
 
     label_list = []
     oh_list = []
