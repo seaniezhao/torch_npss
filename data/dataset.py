@@ -154,16 +154,13 @@ class TimbreDataset(torch.utils.data.Dataset):
         sp_item = sp_sample[:, :self.target_length]
         sp_target = sp_sample[:, -self.target_length:]
 
-        return (sp_item, item_condition), sp_target
-        # todo
         ap_sample = torch.Tensor(ap[target_index:target_index + self.item_length, :]).transpose(0, 1)
-        ap_item = ap_sample[:, :self._receptive_field]
+        ap_item = ap_sample[:, :self.target_length]
         ap_item = torch.cat((ap_item, sp_item), 0)
         ap_target = ap_sample[:, -self.target_length:]
 
-
         vuv_sample = torch.Tensor(vuv[target_index:target_index + self.item_length])
-        vuv_item = vuv_sample[:self._receptive_field]
+        vuv_item = vuv_sample[:self.target_length]
         # notice here ap_item == (ap_item, sp_item) so we dont cat sp item any more
         vuv_item = torch.cat((vuv_item.unsqueeze(0), ap_item), 0)
         vuv_target = vuv_sample[-self.target_length:]

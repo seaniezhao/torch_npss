@@ -4,7 +4,6 @@ from data.dataset import TimbreDataset
 from model.timbre_training import *
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 model = WaveNetModel(hparams.create_aperiodic_hparams(), device).to(device)
 print('model: ', model)
 print('receptive field: ', model.receptive_field)
@@ -20,7 +19,6 @@ trainer = ModelTrainer(model=model,
                        device=device)
 
 #epoch = trainer.load_checkpoint('/Users/zhaowenxiao/pythonProj/torch_npss/snapshots/aperiodic/chaconne_model_1021_2019-03-30_09-32-23')
-
 print('start training...')
-trainer.train(batch_size=6720,
+trainer.train(batch_size=32,
               epochs=1650)

@@ -203,23 +203,25 @@ class WaveNetModel(nn.Module):
         s = sum([np.prod(list(d.size())) for d in par])
         return s
 
-
     def generate(self, conditions, cat_input=None):
         # conditions shape: (condition_channel, len)
         self.eval()
+
+        if cat_input is not None:
+            cat_input = cat_input.to(self.device)
 
         conditions = conditions.to(self.device)
         num_samples = conditions.shape[1]
         generated = torch.zeros(self.sample_channel, num_samples).to(self.device)
 
-        model_input = torch.zeros(1, self.sample_channel, 1).to(self.device)
+        model_input = torch.zeros(1, self.input_channel, 1).to(self.device)
 
         from tqdm import tqdm
         for i in tqdm(range(num_samples)):
             if i < self.receptive_field:
-                condi = conditions[:, :i+1]
+                condi = conditions[:, :i + 1]
             else:
-                condi = conditions[:, i-self.receptive_field+1:i+1]
+                condi = conditions[:, i - self.receptive_field + 1:i + 1]
             condi = condi.unsqueeze(0)
 
             x = self.wavenet(model_input, condi)
@@ -230,7 +232,7 @@ class WaveNetModel(nn.Module):
                     x_sample = 1
                 x_sample = torch.Tensor([x_sample]).to(self.device).unsqueeze(0)
             else:
-                t =0.01
+                t = 0.01
                 if self.model_type == 0:
                     t = 0.05
                 x_sample = sample_from_CGM(x.detach(), t)
@@ -238,81 +240,22 @@ class WaveNetModel(nn.Module):
             generated[:, i] = x_sample.squeeze(0)
 
             # set new input
-            if i < self.receptive_field-1:
-                model_input = torch.cat((model_input.squeeze(0), generated[:, i].unsqueeze(1)), 1)
+            if i < self.receptive_field - 1:
+                model_input = generated[:, :i + 1]
+                if cat_input is not None:
+                    to_cat = cat_input[:, :i + 1]
+                    model_input = torch.cat((to_cat, model_input), 0)
+
+                model_input = torch.Tensor(np.pad(model_input.cpu(), ((0, 0), (1, 0)), 'constant', constant_values=0)).to(
+                    self.device)
             else:
-                model_input = generated[:, i - self.receptive_field+1:i+1]
+                model_input = generated[:, i - self.receptive_field + 1:i + 1]
+                if cat_input is not None:
+                    to_cat = cat_input[:, i - self.receptive_field + 1:i + 1]
+                    model_input = torch.cat((to_cat, model_input), 0)
 
             model_input = model_input.unsqueeze(0)
 
         self.train()
         return generated
-
-    # def generate(self, conditions, cat_input=None, init_input=None):
-    #     self.eval()
-    #
-    #     if cat_input is not None:
-    #         cat_input = cat_input.to(self.device)
-    #         cat_input = torch.cat((torch.zeros(cat_input.shape[0], self.receptive_field).to(self.device), cat_input), 1)
-    #
-    #     conditions = conditions.to(self.device)
-    #     num_samples = conditions.shape[1]
-    #     generated = torch.zeros(self.sample_channel, num_samples).to(self.device)
-    #
-    #     skip_first20 = True
-    #
-    #     if init_input is None:
-    #         init_input = torch.zeros(self.sample_channel, self.receptive_field).to(self.device)
-    #         skip_first20 = False
-    #         if cat_input is not None:
-    #             to_cat = cat_input[:, :self.receptive_field]
-    #     else:
-    #         init_input = init_input[:, :self.receptive_field].to(self.device)
-    #         generated[:, :self.receptive_field] = init_input
-    #         if cat_input is not None:
-    #             to_cat = cat_input[:, self.receptive_field:self.receptive_field*2]
-    #
-    #     model_input = init_input.unsqueeze(0)
-    #     if cat_input is not None:
-    #         model_input = torch.cat((init_input, to_cat), 0).unsqueeze(0)
-    #
-    #     tic = time.time()
-    #     for i in range(num_samples):
-    #         if skip_first20 and i < self.receptive_field:
-    #             continue
-    #         condi = conditions[:, i].unsqueeze(0).unsqueeze(2)
-    #         #  x shape : b, 240, l
-    #         x = self.wavenet(model_input, condi).squeeze()
-    #         if self.model_type == 2:
-    #             x_sample = 0
-    #             if x > 0.5:
-    #                 x_sample = 1
-    #             x_sample = torch.Tensor([x_sample]).to(self.device).unsqueeze(0)
-    #         else:
-    #             t =0.01
-    #             if self.model_type == 0:
-    #                 t = 0.05
-    #             x_sample = sample_from_CGM(x.detach(), t)
-    #         generated[:, i] = x_sample.squeeze(0)
-    #
-    #         # set new input
-    #         if i >= self.receptive_field:
-    #             model_input = generated[:, i-self.receptive_field:i]
-    #         else:
-    #             # padding
-    #             model_input = generated[:, 0:i+1]
-    #             to_pad = init_input[:, i+1:]
-    #             model_input = torch.cat((to_pad, model_input), 1)
-    #
-    #         if cat_input is not None:
-    #             model_input = torch.cat((model_input, cat_input[:, i:i+self.receptive_field]), 0)
-    #         model_input = model_input.unsqueeze(0)
-    #
-    #         if (i+1) == 100:
-    #             toc = time.time()
-    #             print("one generating step does take approximately " + str((toc - tic) * 0.01) + " seconds)")
-    #
-    #     self.train()
-    #
-    #     return generated
 

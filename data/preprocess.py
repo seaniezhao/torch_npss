@@ -4,7 +4,7 @@ import numpy as np
 import os
 import soundfile as sf
 import fnmatch
-from data_util import code_harmonic, decode_harmonic
+from data.data_util import code_harmonic, decode_harmonic
 
 sp_min = 0
 sp_max = 0

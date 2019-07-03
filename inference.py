@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import soundfile as sf
 from data.preprocess import process_wav
-from data_util import decode_harmonic
+from data.data_util import decode_harmonic
 import librosa
 
 fft_size = 2048
@@ -83,12 +83,12 @@ def get_ap_cat():
     return torch.Tensor(code_sp).transpose(0, 1)
 
 def get_vuv_cat():
-    wav_path = 'data/timbre_model/test/sp/nitech_jp_song070_f001_015_sp.npy'
+    wav_path = 'data/timbre_model/test/sp/20_sp.npy'
 
     code_sp = np.load(wav_path).astype(np.double)
     sp_cat = torch.Tensor(code_sp).transpose(0, 1)
 
-    wav_path = 'data/timbre_model/test/ap/nitech_jp_song070_f001_015_ap.npy'
+    wav_path = 'data/timbre_model/test/ap/20_ap.npy'
 
     code_sp = np.load(wav_path).astype(np.double)
     ap_cat = torch.Tensor(code_sp).transpose(0, 1)
@@ -98,18 +98,10 @@ def get_vuv_cat():
 
 
 
-def get_first_input():
-
-    wav_path = 'data/timbre_model/test/sp/nitech_jp_song070_f001_029_sp.npy'
-    #wav_path = '/home/sean/pythonProj/torch_npss/data/timbre_model/train/ap/nitech_jp_song070_f001_055_ap.npy'
-
-    code_sp = np.load(wav_path).astype(np.double)
-    return torch.Tensor(code_sp).transpose(0, 1)
-
 
 def get_condition():
 
-    c_path = 'data/timbre_model/train/condition/nitech_jp_song070_f001_003_condi.npy'
+    c_path = 'data/timbre_model/test/condition/20_condi.npy'
     conditon = np.load(c_path).astype(np.float)
     return torch.Tensor(conditon).transpose(0, 1)
 
@@ -123,42 +115,42 @@ if __name__ == '__main__':
     #cat_input = get_ap_cat()
     #fist_input = get_first_input()
 
-    sp, raw_sp = generate_timbre(0, sp_max, sp_min, condi, None)
-
-    plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom', interpolation='none')
-    plt.show()
-
-    sp1 = load_timbre('data/timbre_model/train/sp/nitech_jp_song070_f001_003_sp.npy', 0, sp_max, sp_min)
-
-    plt.imshow(np.log(np.transpose(sp1)), aspect='auto', origin='bottom', interpolation='none')
-    plt.show()
+    # sp, raw_sp = generate_timbre(0, sp_max, sp_min, condi, None)
+    #
+    # plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom', interpolation='none')
+    # plt.show()
+    #
+    # sp1 = load_timbre('data/timbre_model/test/sp/20_sp.npy', 0, sp_max, sp_min)
+    #
+    # plt.imshow(np.log(np.transpose(sp1)), aspect='auto', origin='bottom', interpolation='none')
+    # plt.show()
 ####################################################################################################
-    # ap, raw_ap = generate_timbre(1, ap_max, ap_min, condi, raw_sp, None)
+    # ap, raw_ap = generate_timbre(1, ap_max, ap_min, condi, raw_sp)
     #
     # plt.imshow(np.log(np.transpose(ap)), aspect='auto', origin='bottom', interpolation='none')
     # plt.show()
     #
-    # ap1 = load_timbre('data/timbre_model/test/ap/nitech_jp_song070_f001_015_ap.npy', 1, ap_max, ap_min)
+    # ap1 = load_timbre('data/timbre_model/test/ap/20_ap.npy', 1, ap_max, ap_min)
     #
     # plt.imshow(np.log(np.transpose(ap1)), aspect='auto', origin='bottom', interpolation='none')
     # plt.show()
 
 #########################################################################################################
-    # vuv_cat = get_vuv_cat()
-    # # gen_cat = torch.cat((raw_ap, raw_sp), 0)
-    #
-    # vuv = generate_vuv(condi, vuv_cat)
-    # plt.plot(vuv)
-    # plt.show()
-    #
-    # vuv1 = np.load('data/timbre_model/test/vuv/nitech_jp_song070_f001_040_vuv.npy')
-    # plt.plot(vuv1)
-    # plt.show()
+    vuv_cat = get_vuv_cat()
+    # gen_cat = torch.cat((raw_ap, raw_sp), 0)
 
-    path = 'data/raw_one/nitech_jp_song070_f001_003.raw'
+    vuv = generate_vuv(condi, vuv_cat)
+    plt.plot(vuv)
+    plt.show()
+
+    vuv1 = np.load('data/timbre_model/test/vuv/nitech_jp_song070_f001_040_vuv.npy')
+    plt.plot(vuv1)
+    plt.show()
+
+    path = 'data/raw/20.wav'
     _f0, _sp, code_sp, _ap, code_ap = process_wav(path)
     # 合成原始语音
-    synthesized = pw.synthesize(_f0, sp, _ap, 32000, pw.default_frame_period)
+    synthesized = pw.synthesize(_f0, _sp, _ap, 32000, pw.default_frame_period)
     # 1.输出原始语音
-    sf.write('./data/gen_wav/hahaha'
+    sf.write('./data/gen_wav/noreverb_nodelay_paper_piecewise_20_test'
              '.wav', synthesized, 32000)
