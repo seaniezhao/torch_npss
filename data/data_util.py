@@ -13,7 +13,7 @@ import copy
 
 gamma = 0
 mcepInput = 3  # 0 for dB, 3 for magnitude
-alpha = 0.35
+alpha = 0.45
 en_floor = 10 ** (-80 / 20)
 
 
@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
     specshow(mfsc.T, sr=sr, hop_length=80, x_axis='time')
     plt.colorbar()
-    plt.title('MCEPS')
+    plt.title('mfsc')
     plt.tight_layout()
     plt.show()
 
