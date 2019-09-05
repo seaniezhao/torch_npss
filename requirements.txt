@@ -1,0 +1,8 @@
+SoundFile
+torch
+librosa
+matplotlib
+pysptk
+tensorflow 
+tqdm
+pyworld
