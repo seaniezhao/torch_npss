@@ -101,7 +101,7 @@ def get_vuv_cat():
 
 def get_condition():
 
-    c_path = 'data/timbre_model/test/condition/20_condi.npy'
+    c_path = 'data/timbre_model/test/condition/nitech_jp_song070_f001_029_condi.npy'
     conditon = np.load(c_path).astype(np.float)
     return torch.Tensor(conditon).transpose(0, 1)
 
@@ -143,14 +143,14 @@ if __name__ == '__main__':
     plt.plot(vuv)
     plt.show()
 
-    vuv1 = np.load('data/timbre_model/test/vuv/nitech_jp_song070_f001_040_vuv.npy')
+    vuv1 = np.load('data/timbre_model/test/vuv/nitech_jp_song070_f001_029_vuv.npy')
     plt.plot(vuv1)
     plt.show()
 
-    path = 'data/raw/20.wav'
+    path = 'data/raw/nitech_jp_song070_f001_029.wav'
     _f0, _sp, code_sp, _ap, code_ap = process_wav(path)
     # 合成原始语音
     synthesized = pw.synthesize(_f0, _sp, _ap, 32000, pw.default_frame_period)
     # 1.输出原始语音
-    sf.write('./data/gen_wav/noreverb_nodelay_paper_piecewise_20_test'
+    sf.write('./data/gen_wav/29test'
              '.wav', synthesized, 32000)
