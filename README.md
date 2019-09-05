@@ -7,4 +7,4 @@
 pip install -r requirements.txt 
 python inference.py
 ```
-### any questions feel free to leave an issue
+* if you have any questions feel free to leave an issue
