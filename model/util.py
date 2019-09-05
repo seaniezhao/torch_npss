@@ -4,6 +4,7 @@ import numpy as np
 from torch.distributions.normal import Normal
 
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # 计算 mu sigma 和 w
 def cal_para(out, temperature):
 
@@ -44,7 +45,7 @@ def cal_para(out, temperature):
 
         #tempers = tempers[::-1]
         tempers = torch.Tensor(tempers)
-        tempers = tempers.expand(xi.shape).cuda()
+        tempers = tempers.expand(xi.shape).to(device)
         # if temperature != 0.01 mean it is for harmonic so it will be piecewise linear
         if temperature != 0.01:
             temperature = tempers
@@ -121,10 +122,10 @@ def sample_from_CGM(out, temperature=0.01):
     sigmas, mus, ws = cal_para(out, temperature)
 
     value = 0
-    rand = torch.rand(ws[0].shape).cuda()
+    rand = torch.rand(ws[0].shape).to(device)
 
     for k in range(4):
-        mask_btm = torch.zeros(ws[k].shape).cuda()
+        mask_btm = torch.zeros(ws[k].shape).to(device)
         for i in range(k):
             mask_btm += ws[i]
         mask = (rand < (ws[k] + mask_btm)) * (rand >= mask_btm)
