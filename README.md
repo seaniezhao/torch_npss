@@ -6,7 +6,7 @@
 * pretrained models are provided in snapshots/
 * generated samples are in data/gen_wav/ 
 
-[sample](data/gen_wav/29test.wav)
+[sample](https://soundcloud.com/sean-zhao-236492288/29-test)
 
 <audio id="audio" controls="" preload="none">
 <source id="mp3" src="data/gen_wav/29test.wav">
