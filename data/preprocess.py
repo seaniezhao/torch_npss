@@ -4,13 +4,18 @@ import numpy as np
 import os
 import soundfile as sf
 import fnmatch
+# 直接运行些脚本的时候，不用每次修改data引入的路径
+if __name__ == "__main__":
+    import sys
+    data_libary_dir = os.path.join(os.path.dirname(__file__), "../")
+    sys.path.append(data_libary_dir)
+
 from data.data_util import code_harmonic, decode_harmonic
+import sys
 
-sp_min = 0
-sp_max = 0
+sp_min, sp_max = sys.maxsize, (-sys.maxsize - 1)
+ap_min, ap_max = sys.maxsize, (-sys.maxsize - 1)
 
-ap_min = 0
-ap_max = 0
 
 rt_folder = 'timbre_model'
 tr_folder = 'timbre_model/train'

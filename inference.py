@@ -153,5 +153,5 @@ if __name__ == '__main__':
     # 合成原始语音
     synthesized = pw.synthesize(_f0, sp, ap, 32000, pw.default_frame_period)
     # 1.输出原始语音
-    sf.write('./data/gen_wav/29test'
+    sf.write('./data/gen_wav/29-test'
              '.wav', synthesized, 32000)
