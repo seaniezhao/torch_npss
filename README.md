@@ -17,4 +17,10 @@
 pip install -r requirements.txt 
 python inference.py
 ```
+
+### train your own model
+- put your audio and label in data/raw
+- run data/preprocess.py
+- run train_harmonoc.py train_aperoidic.py train_vuv.py 
+
 * if you have any questions feel free to leave an issue
