@@ -24,6 +24,8 @@ pip install -r requirements.txt
 ```
 python data/preprocess.py
 ```
+注意根据处理获得的数据调整hparams.py中的condition_channel
+
 ### 五、模型的训练
 ```
 python train_harmonoc.py
