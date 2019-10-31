@@ -14,6 +14,7 @@
 
 ### try it out!
 ``` 
+note: test labels are in data/timbre_model/test
 pip install -r requirements.txt 
 python inference.py
 ```
