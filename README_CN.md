@@ -35,6 +35,7 @@ python train_vuv.py
 
 ### 六、生成方式 
 ```
+注：需要生成的标签已经放到了data/timbre_model/test，可以自己生成数据放到test中相应文件夹下
 pip install -r requirements.txt 
 python inference.py
 ```
