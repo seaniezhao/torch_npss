@@ -17,6 +17,8 @@ sp_min, sp_max = sys.maxsize, (-sys.maxsize - 1)
 ap_min, ap_max = sys.maxsize, (-sys.maxsize - 1)
 
 
+custom_test = False
+
 rt_folder = 'timbre_model'
 tr_folder = 'timbre_model/train'
 
@@ -227,9 +229,11 @@ if __name__ == '__main__':
             if _ap_max > ap_max:
                 ap_max = _ap_max
 
-
-    np.save('timbre_model/min_max_record.npy', [sp_min, sp_max, ap_min, ap_max])
-    np.save('timbre_model/all_phonetic.npy', all_phon)
+    if custom_test:
+        all_phon = list(np.load('timbre_model/all_phonetic.npy'))
+    else:
+        np.save('timbre_model/min_max_record.npy', [sp_min, sp_max, ap_min, ap_max])
+        np.save('timbre_model/all_phonetic.npy', all_phon)
 
 
     for file_name, time_phon_list, f0, code_sp, code_ap, v_uv in data_to_save:

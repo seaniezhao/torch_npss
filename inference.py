@@ -100,44 +100,42 @@ def get_vuv_cat():
 
 
 
-def get_condition():
+def get_condition(filename):
 
-    c_path = 'data/timbre_model/test/condition/nitech_jp_song070_f001_029_condi.npy'
+    c_path = 'data/timbre_model/test/condition/'+filename+'_condi.npy'
     conditon = np.load(c_path).astype(np.float)
     return torch.Tensor(conditon).transpose(0, 1)
 
 
-
-
-if __name__ == '__main__':
+def generate_test(filename):
 
     [sp_min, sp_max, ap_min, ap_max] = np.load('data/timbre_model/min_max_record.npy')
-    condi = get_condition()
-    #cat_input = get_ap_cat()
-    #fist_input = get_first_input()
+    condi = get_condition(filename)
+    # cat_input = get_ap_cat()
+    # fist_input = get_first_input()
 
     sp, raw_sp = generate_timbre(0, sp_max, sp_min, condi, None)
 
     plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom', interpolation='none')
     plt.show()
 
-    sp1 = load_timbre('data/timbre_model/test/sp/nitech_jp_song070_f001_029_sp.npy', 0, sp_max, sp_min)
+    sp1 = load_timbre('data/timbre_model/test/sp/'+filename+'_sp.npy', 0, sp_max, sp_min)
 
     plt.imshow(np.log(np.transpose(sp1)), aspect='auto', origin='bottom', interpolation='none')
     plt.show()
-####################################################################################################
+    ####################################################################################################
     ap, raw_ap = generate_timbre(1, ap_max, ap_min, condi, raw_sp)
 
     plt.imshow(np.log(np.transpose(ap)), aspect='auto', origin='bottom', interpolation='none')
     plt.show()
 
-    ap1 = load_timbre('data/timbre_model/test/ap/nitech_jp_song070_f001_029_ap.npy', 1, ap_max, ap_min)
+    ap1 = load_timbre('data/timbre_model/test/ap/'+filename+'_ap.npy', 1, ap_max, ap_min)
 
     plt.imshow(np.log(np.transpose(ap1)), aspect='auto', origin='bottom', interpolation='none')
     plt.show()
 
-#########################################################################################################
-    #vuv_cat = get_vuv_cat()
+    #########################################################################################################
+    # vuv_cat = get_vuv_cat()
     # gen_cat = torch.cat((raw_ap, raw_sp), 0)
 
     # vuv = generate_vuv(condi, vuv_cat)
@@ -148,10 +146,16 @@ if __name__ == '__main__':
     # plt.plot(vuv1)
     # plt.show()
 
-    path = 'data/raw/nitech_jp_song070_f001_029.raw'
+    path = 'data/raw/'+filename+'.raw'
     _f0, _sp, code_sp, _ap, code_ap = process_wav(path)
     # 合成原始语音
     synthesized = pw.synthesize(_f0, sp, ap, 32000, pw.default_frame_period)
     # 1.输出原始语音
-    sf.write('./data/gen_wav/29-test'
+    sf.write('./data/gen_wav/'+filename+''
              '.wav', synthesized, 32000)
+
+
+
+if __name__ == '__main__':
+    generate_test('nitech_jp_song070_f001_029')
+
