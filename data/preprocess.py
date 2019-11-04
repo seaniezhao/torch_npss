@@ -17,22 +17,22 @@ sp_min, sp_max = sys.maxsize, (-sys.maxsize - 1)
 ap_min, ap_max = sys.maxsize, (-sys.maxsize - 1)
 
 
-custom_test = False
+custom_test = True
 
-rt_folder = 'timbre_model'
-tr_folder = 'timbre_model/train'
+rt_folder = os.path.join(os.path.dirname(__file__), 'timbre_model')
+tr_folder = os.path.join(os.path.dirname(__file__), 'timbre_model/train')
 
-sp_folder = 'timbre_model/train/sp/'
-ap_folder = 'timbre_model/train/ap/'
-vuv_folder = 'timbre_model/train/vuv/'
-condition_folder = 'timbre_model/train/condition/'
+sp_folder = os.path.join(os.path.dirname(__file__), 'timbre_model/train/sp/')
+ap_folder = os.path.join(os.path.dirname(__file__), 'timbre_model/train/ap/')
+vuv_folder = os.path.join(os.path.dirname(__file__), 'timbre_model/train/vuv/')
+condition_folder = os.path.join(os.path.dirname(__file__), 'timbre_model/train/condition/')
 
-te_folder = 'timbre_model/test'
+te_folder = os.path.join(os.path.dirname(__file__), 'timbre_model/test')
 
-te_sp_folder = 'timbre_model/test/sp/'
-te_ap_folder = 'timbre_model/test/ap/'
-te_vuv_folder = 'timbre_model/test/vuv/'
-te_condition_folder = 'timbre_model/test/condition/'
+te_sp_folder = os.path.join(os.path.dirname(__file__), 'timbre_model/test/sp/')
+te_ap_folder = os.path.join(os.path.dirname(__file__), 'timbre_model/test/ap/')
+te_vuv_folder = os.path.join(os.path.dirname(__file__), 'timbre_model/test/vuv/')
+te_condition_folder = os.path.join(os.path.dirname(__file__), 'timbre_model/test/condition/')
 
 f0_bin = 256
 f0_max = 1100.0
@@ -194,7 +194,7 @@ if __name__ == '__main__':
 
     test_names = ['nitech_jp_song070_f001_015', 'nitech_jp_song070_f001_029', 'nitech_jp_song070_f001_040']
 
-    raw_folder = './raw'
+    raw_folder = os.path.join(os.path.dirname(__file__), './raw')
 
     all_phon = ['none']
     data_to_save = []
@@ -230,10 +230,10 @@ if __name__ == '__main__':
                 ap_max = _ap_max
 
     if custom_test:
-        all_phon = list(np.load('timbre_model/all_phonetic.npy'))
+        all_phon = list(np.load(os.path.join(os.path.dirname(__file__), 'timbre_model/all_phonetic.npy')))
     else:
-        np.save('timbre_model/min_max_record.npy', [sp_min, sp_max, ap_min, ap_max])
-        np.save('timbre_model/all_phonetic.npy', all_phon)
+        np.save(os.path.join(os.path.dirname(__file__), 'timbre_model/min_max_record.npy'), [sp_min, sp_max, ap_min, ap_max])
+        np.save(os.path.join(os.path.dirname(__file__), 'timbre_model/all_phonetic.npy'), all_phon)
 
 
     for file_name, time_phon_list, f0, code_sp, code_ap, v_uv in data_to_save:
