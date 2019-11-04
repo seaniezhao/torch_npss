@@ -19,6 +19,14 @@ pip install -r requirements.txt
 python inference.py
 ```
 
+### try with your own data
+```
+put your own raw and label data in data/raw/
+change custom_test in data/preprocess.py to True
+run data/preprocess.py
+run generate_test('your_file_name') in inference.py 
+```
+
 ### train your own model
 - put your audio and label in data/raw
 - run data/preprocess.py
