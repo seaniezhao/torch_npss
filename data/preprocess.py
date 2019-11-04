@@ -242,7 +242,7 @@ if __name__ == '__main__':
         code_sp = (code_sp - sp_min) / (sp_max - sp_min) - 0.5
         code_ap = (code_ap - ap_min) / (ap_max - ap_min) - 0.5
 
-        test = False
+        test = False or custom_test
         for n in test_names:
             if n in file_name:
                 test = True
