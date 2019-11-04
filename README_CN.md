@@ -25,7 +25,7 @@ pip install -r requirements.txt
 python data/preprocess.py
 ```
 注意根据处理获得的数据调整hparams.py中的condition_channel
-- 如果只想用自己的数据测试：
+###### 如果只想用自己的数据测试：
 - 1. 将自己的数据放到data/raw目录下
 - 2. 将 data/preprocess.py 中的 custom_test 改为True
 - 3. 运行 data/preprocess.py
