@@ -46,4 +46,5 @@ pip install -r requirements.txt
 python inference.py
 ```
 
-### 七、有任何使用上的问题，或者交流合作加微信：seanweichat
+### 七、有任何使用上的问题，或者交流合作加微信：seanweichat 
+### 最后： 如果喜欢本项目，请给个star谢谢
