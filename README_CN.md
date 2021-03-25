@@ -19,6 +19,7 @@ pip install -r requirements.txt
 ```
 
 ### 四、训练数据及测试数据准备
+原文所用数据集：https://drive.google.com/file/d/137dTlTiN7jSadV76sRDRwNJ_ysTz1psA/view?usp=sharing
 将音频文件和标注文件放到data/raw目录下，然后执行
 
 ```
