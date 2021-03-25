@@ -6,6 +6,8 @@
 * pretrained models are provided in snapshots/
 * generated samples are in data/gen_wav/ 
 
+dataset：https://drive.google.com/file/d/137dTlTiN7jSadV76sRDRwNJ_ysTz1psA/view?usp=sharing
+
 [sample](https://soundcloud.com/sean-zhao-236492288/29-test)
 
 <audio id="audio" controls="" preload="none">
