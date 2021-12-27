@@ -36,3 +36,5 @@ run generate_test('your_file_name') in inference.py
 - run train_harmonoc.py train_aperoidic.py train_vuv.py 
 
 * if you have any questions feel free to leave an issue
+
+## A complete version of implementation which including F0 model and vuv model see here: https://github.com/seaniezhao/cnnpss
